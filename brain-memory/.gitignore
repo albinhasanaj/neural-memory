@@ -1,0 +1,44 @@
+# ── Python ────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ── Virtual environments ──────────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── IDE ───────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Environment ───────────────────────────────────────────────────
+.env
+
+# ── Data (created at runtime) ─────────────────────────────────────
+data/episodic.db
+data/semantic_graph.json
+data/embeddings_cache/
+
+# ── ML model caches ──────────────────────────────────────────────
+*.pt
+*.bin
+*.onnx
+models/
+
+# ── OS ────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Testing / Coverage ───────────────────────────────────────────
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
