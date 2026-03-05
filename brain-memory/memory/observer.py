@@ -288,6 +288,10 @@ class NeuralMemoryObserver(MemoryObserver):
         self._salience_ema: float = 0.3
         self._salience_ema_alpha: float = 0.05
 
+        # Phase 4 — Neural injection into local LLM
+        self._projection: Any = None
+        self._local_llm: Any = None
+
         self._init_neural_components()
 
     def _init_neural_components(self) -> None:
@@ -347,6 +351,65 @@ class NeuralMemoryObserver(MemoryObserver):
         from memory.trainer import TrainingCoordinator
         self._trainer = TrainingCoordinator()
         self._trainer.initialise(shared_models=shared)
+
+    def init_neural_injection(self, local_llm: Any) -> None:
+        """Called after local LLM is loaded, when we know the hidden dim."""
+        from memory.neural_bridge import MemoryProjection
+
+        self._local_llm = local_llm
+        self._projection = MemoryProjection(
+            brain_dim=settings.embedding_dim,
+            llm_dim=local_llm.hidden_dim,
+            injection_strength=settings.neural_injection_strength,
+        ).to(local_llm.model.device)
+
+    def prepare_neural_injection(self, query_embedding: torch.Tensor) -> torch.Tensor | None:
+        """Retrieve from fast weights and prepare injection vector.
+
+        Called instead of retrieve_decoded when neural injection is active.
+
+        Returns the projected vector, or None if retrieval energy is too low.
+        """
+        if self._hopfield is None or self._projection is None:
+            return None
+
+        # Get raw retrieval from fast weights — NO text decode needed
+        # retrieve() returns (embedding[384], energy) — already in embedding space
+        from memory.hopfield_memory import ModularFastWeightMemory
+
+        if isinstance(self._hopfield, ModularFastWeightMemory):
+            routes = self._hopfield.router.route_read(query_embedding)
+            dev = query_embedding.device
+            combined_output = torch.zeros(settings.embedding_dim, device=dev)
+            combined_energy = torch.tensor(0.0, device=dev)
+
+            for module_idx, route_weight in routes:
+                module = self._hopfield.modules_list[module_idx]
+                output, energy = module.retrieve(query_embedding)
+                combined_output += output * route_weight
+                combined_energy += energy * route_weight
+
+            output = combined_output
+            energy = combined_energy
+        elif hasattr(self._hopfield, "retrieve"):
+            output, energy = self._hopfield.retrieve(query_embedding)
+        else:
+            return None
+
+        # No hard cutoff — the energy_gate in MemoryProjection already
+        # provides soft scaling (low energy → near-zero injection).
+        # Only skip if there are literally no memories written.
+        if energy.item() < 1e-8:
+            return None
+
+        # Project to LLM space
+        device = next(self._projection.parameters()).device
+        projected = self._projection(
+            output.to(device),
+            energy.to(device),
+        )
+
+        return projected
 
     def observe(
         self,
@@ -471,6 +534,9 @@ class NeuralMemoryObserver(MemoryObserver):
 
             # 8. Hopfield storage (with decode metadata)
             if self._hopfield is not None:
+                # Salience-scaled write strength — high-salience memories
+                # get written stronger (amygdala modulation of encoding)
+                write_strength = 1.0 + float(salience) * 4.0
                 self._hopfield.store(
                     embedding=embedding,
                     episode_id=entry.id,
@@ -482,7 +548,11 @@ class NeuralMemoryObserver(MemoryObserver):
                         "topics": topics,
                         "salience": salience,
                     },
+                    strength=write_strength,
                 )
+                # Hippocampal replay — reinforce recent memories
+                if hasattr(self._hopfield, 'replay_recent'):
+                    self._hopfield.replay_recent(n=3, replay_strength=0.3)
                 # -- emit write event
                 event_bus.emit('write', episode_id=entry.id, text=text[:100],
                                entities=entities, salience=float(salience))
@@ -618,8 +688,28 @@ class NeuralMemoryObserver(MemoryObserver):
         3. Forgetting filter (if enabled)
         4. Gate reward from Hopfield attention weights
         5. Inject using decoded text
+
+        When ``use_neural_injection`` is True and a local LLM is available,
+        skips text decode and instead projects memory activations directly
+        into LLM hidden states.
         """
         assert self._hopfield is not None
+
+        # ── Phase 4: Neural injection path ───────────────────────────
+        if settings.use_neural_injection and self._local_llm is not None:
+            injection_vector = self.prepare_neural_injection(ctx_emb)
+
+            if injection_vector is not None:
+                self._local_llm.set_memory_vector(injection_vector)
+                # -- emit inject event for neural path
+                event_bus.emit('inject', num_memories=1,
+                               memory_texts=["[neural injection — no text decode]"])
+            else:
+                self._local_llm.set_memory_vector(None)
+
+            # Return messages UNMODIFIED — no [MEMORY CONTEXT] block
+            # Memory is injected during generation via the forward hook
+            return messages, activated
 
         # Step 1: Hopfield retrieval (primary)
         hopfield_results = self._hopfield.retrieve_decoded(ctx_emb, top_k=10)

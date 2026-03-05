@@ -199,6 +199,28 @@ class Settings(BaseSettings):
     gru_predictor_lr: float = 1e-4
     pattern_sep_lr: float = 3e-4
     wm_transformer_lr: float = 1e-4
+
+    # ── Phase 4 — Neural injection into local LLM ───────────────
+    use_neural_injection: bool = Field(
+        default=False,
+        description="Master switch for Phase 4 neural injection into local LLM.",
+    )
+    local_llm_model: str = Field(
+        default="Qwen/Qwen2.5-3B-Instruct",
+        description="HuggingFace model ID for local LLM (3B default for 11GB VRAM safety).",
+    )
+    local_llm_injection_layer: int | None = Field(
+        default=None,
+        description="Transformer layer to inject memory into. None = auto (middle layer).",
+    )
+    neural_injection_strength: float = Field(
+        default=0.3,
+        description="How strongly memory affects LLM hidden states.",
+    )
+    neural_projection_lr: float = Field(
+        default=1e-4,
+        description="Learning rate for projection layer training.",
+    )
     training_replay_buffer_size: int = 500
     gate_exploration_epsilon: float = 0.1
     training_grad_clip: float = 1.0

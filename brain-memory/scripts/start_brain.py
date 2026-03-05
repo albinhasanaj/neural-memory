@@ -4,9 +4,12 @@ Usage::
 
     python -m scripts.start_brain [checkpoint_path]
     python -m scripts.start_brain checkpoints/fast_weight_1k/final
+    python -m scripts.start_brain --neural                          # local LLM + neural injection
+    python -m scripts.start_brain --neural --model Qwen/Qwen2.5-7B-Instruct
 """
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 
@@ -25,11 +28,40 @@ os.environ["BRAIN_CONSOLIDATION_INTERVAL"] = "10"
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Brain Memory — Live Neural Chat")
+    parser.add_argument(
+        "checkpoint",
+        nargs="?",
+        default="checkpoints/fast_weight_1k/final",
+        help="Path to brain memory checkpoint directory",
+    )
+    parser.add_argument(
+        "--neural",
+        action="store_true",
+        help="Use neural injection with local LLM instead of text injection",
+    )
+    parser.add_argument(
+        "--model",
+        default=None,
+        help="HuggingFace model name for local LLM (only with --neural)",
+    )
+    args = parser.parse_args()
+
+    if args.neural:
+        os.environ["BRAIN_USE_NEURAL_INJECTION"] = "true"
+        # Delegate to neural chat launcher
+        from scripts.start_neural_chat import main as neural_main
+
+        sys.argv = [sys.argv[0], args.checkpoint]
+        if args.model:
+            sys.argv.append(args.model)
+        neural_main()
+        sys.exit(0)
     from config.settings import settings
     from memory.observer import NeuralMemoryObserver
     from memory.neural_events import event_bus
 
-    checkpoint = sys.argv[1] if len(sys.argv) > 1 else "checkpoints/fast_weight_1k/final"
+    checkpoint = args.checkpoint
 
     # Create shared observer
     settings.ensure_data_dirs()

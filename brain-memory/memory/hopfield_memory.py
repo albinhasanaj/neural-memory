@@ -128,6 +128,7 @@ class LegacyHippocampalMemory(nn.Module):
         value: Tensor | None = None,
         episode_id: str = "",
         metadata: dict | None = None,
+        strength: float = 1.0,
     ) -> None:
         """Add a new pattern to the associative store.
 
@@ -529,6 +530,7 @@ class HopfieldModule(nn.Module):
         value: Tensor | None = None,
         episode_id: str = "",
         metadata: dict | None = None,
+        strength: float = 1.0,
     ) -> None:
         with torch.no_grad():
             pattern = self.separator(embedding.to(_device).unsqueeze(0))
@@ -839,6 +841,7 @@ class ModularHippocampalMemory(nn.Module):
         value: Tensor | None = None,
         episode_id: str = "",
         metadata: dict | None = None,
+        strength: float = 1.0,
     ) -> None:
         """Route *embedding* to top-K modules and store in each."""
         targets = self.router.route_write(embedding)
@@ -1128,8 +1131,14 @@ class FastWeightModule(nn.Module):
         embedding: Tensor,
         episode_id: str = "",
         metadata: dict | None = None,
+        strength: float = 1.0,
     ) -> None:
-        """Write a memory via Hebbian outer product: ``W += η · v ⊗ k``."""
+        """Write a memory via Hebbian outer product: ``W += η · v ⊗ k``.
+
+        Args:
+            strength: Multiplier on write_lr. High-salience memories use
+                      strength > 1 to create deeper attractor basins.
+        """
         with torch.no_grad():
             emb = embedding.to(_device)
             key = self.separator(emb.unsqueeze(0)).squeeze(0)
@@ -1139,8 +1148,9 @@ class FastWeightModule(nn.Module):
             value = F.normalize(value, dim=0)
 
             # Interference-protected Hebbian write
-            delta_key = self.write_lr * torch.outer(key, key)
-            delta_value = self.write_lr * torch.outer(value, key)
+            effective_lr = self.write_lr * strength
+            delta_key = effective_lr * torch.outer(key, key)
+            delta_value = effective_lr * torch.outer(value, key)
 
             protection_key = 1.0 / (1.0 + self.omega_key)
             protection_value = 1.0 / (1.0 + self.omega_value)
@@ -1176,9 +1186,31 @@ class FastWeightModule(nn.Module):
         value: Tensor | None = None,
         episode_id: str = "",
         metadata: dict | None = None,
+        strength: float = 1.0,
     ) -> None:
         """Compatibility shim — delegates to :meth:`write`."""
-        self.write(embedding, episode_id=episode_id, metadata=metadata)
+        self.write(embedding, episode_id=episode_id, metadata=metadata, strength=strength)
+
+    def replay_recent(self, n: int = 5, replay_strength: float = 0.3) -> None:
+        """Re-write recent memories to strengthen their attractor basins.
+
+        Brain analogy: hippocampal replay during consolidation.
+        Each replay re-applies the Hebbian write with reduced strength,
+        gradually deepening the attractor without overwhelming other memories.
+        """
+        if not self._write_history:
+            return
+        with torch.no_grad():
+            recent = self._write_history[-n:]
+            for _emb_hash, emb_tensor in recent:
+                emb = emb_tensor.to(_device)
+                key = self.separator(emb.unsqueeze(0)).squeeze(0)
+                value = self.value_proj(emb.unsqueeze(0)).squeeze(0)
+                key = F.normalize(key, dim=0)
+                value = F.normalize(value, dim=0)
+                effective_lr = self.write_lr * replay_strength
+                self.W_key += effective_lr * torch.outer(key, key)
+                self.W_value += effective_lr * torch.outer(value, key)
 
     # ── Homeostatic decay ───────────────────────────────────────────
 
@@ -1427,11 +1459,20 @@ class ModularFastWeightMemory(nn.Module):
         value: Tensor | None = None,
         episode_id: str = "",
         metadata: dict | None = None,
+        strength: float = 1.0,
     ) -> None:
         """Route embedding to top-K modules and write into their weight matrices."""
         targets = self.router.route_write(embedding, top_k=self._top_k_write)
         for mod_idx, _score in targets:
-            self.modules_list[mod_idx].write(embedding, episode_id=episode_id, metadata=metadata)
+            self.modules_list[mod_idx].write(
+                embedding, episode_id=episode_id, metadata=metadata, strength=strength,
+            )
+
+    def replay_recent(self, n: int = 5, replay_strength: float = 0.3) -> None:
+        """Replay recent memories across all active modules."""
+        for m in self.modules_list:
+            if m._write_history:
+                m.replay_recent(n=n, replay_strength=replay_strength)
 
     # ── Retrieve ────────────────────────────────────────────────────
 
