@@ -88,6 +88,8 @@ class TrainingCoordinator:
         shared = shared_models or {}
         self._init_gat(shared.get("gat"))
         self._init_hopfield(shared.get("hopfield"))
+        self._init_router(shared.get("router"))
+        self._init_fast_weight(shared.get("hopfield"))
         self._init_vae(shared.get("vae"))
         self._init_gate(shared.get("gate"))
         self._init_pattern_separator(shared.get("pattern_sep"))
@@ -121,8 +123,10 @@ class TrainingCoordinator:
     def _init_hopfield(self, external_model: Any = None) -> None:
         state = ComponentState(name="hopfield", enabled=settings.use_hopfield_memory)
         if state.enabled:
-            from memory.hopfield_memory import HippocampalMemory, HopfieldReplayBuffer
-            model = external_model or HippocampalMemory()
+            from memory.hopfield_memory import HopfieldReplayBuffer, LegacyHippocampalMemory, ModularHippocampalMemory
+            model = external_model or (
+                ModularHippocampalMemory() if settings.use_modular_hopfield else LegacyHippocampalMemory()
+            )
             state.model = model
             # Train separator, query_proj, and log_beta
             trainable = (
@@ -133,6 +137,47 @@ class TrainingCoordinator:
             state.optimizer = torch.optim.Adam(trainable, lr=settings.gat_learning_rate)
             state.replay_buffer = HopfieldReplayBuffer(capacity=settings.training_replay_buffer_size)
         self.components["hopfield"] = state
+
+    def _init_router(self, external_model: Any = None) -> None:
+        enabled = settings.use_hopfield_memory and settings.use_modular_hopfield
+        state = ComponentState(name="router", enabled=enabled)
+        if state.enabled:
+            from memory.hopfield_memory import RouterReplayBuffer
+            # Get the router from the hopfield model (ModularHippocampalMemory)
+            hopfield_comp = self.components.get("hopfield")
+            if external_model is not None:
+                model = external_model
+            elif hopfield_comp and hopfield_comp.model is not None and hasattr(hopfield_comp.model, "router"):
+                model = hopfield_comp.model.router
+            else:
+                from memory.hopfield_memory import MemoryRouter
+                model = MemoryRouter()
+            state.model = model
+            state.optimizer = torch.optim.Adam(model.parameters(), lr=settings.hopfield_router_lr)
+            state.replay_buffer = RouterReplayBuffer(capacity=settings.training_replay_buffer_size)
+        self.components["router"] = state
+
+    def _init_fast_weight(self, external_model: Any = None) -> None:
+        enabled = settings.use_hopfield_memory and settings.use_fast_weight_memory
+        state = ComponentState(name="fast_weight", enabled=enabled)
+        if state.enabled:
+            from memory.hopfield_memory import FastWeightReplayBuffer, ModularFastWeightMemory
+            # Get the model from the hopfield component (should be a ModularFastWeightMemory)
+            hopfield_comp = self.components.get("hopfield")
+            if external_model is not None and isinstance(external_model, ModularFastWeightMemory):
+                model = external_model
+            elif hopfield_comp and isinstance(hopfield_comp.model, ModularFastWeightMemory):
+                model = hopfield_comp.model
+            else:
+                model = ModularFastWeightMemory()
+            state.model = model
+            # Only train slow parameters (not fast weights / buffers)
+            slow_params = [
+                p for p in model.parameters() if p.requires_grad
+            ]
+            state.optimizer = torch.optim.Adam(slow_params, lr=settings.gat_learning_rate)
+            state.replay_buffer = FastWeightReplayBuffer(capacity=settings.training_replay_buffer_size)
+        self.components["fast_weight"] = state
 
     def _init_vae(self, external_model: Any = None) -> None:
         state = ComponentState(name="vae", enabled=settings.use_vae_consolidation)
@@ -269,6 +314,10 @@ class TrainingCoordinator:
             from memory.hopfield_memory import train_hopfield_step
             return train_hopfield_step(comp.model, comp.optimizer, comp.replay_buffer)  # type: ignore
 
+        if name == "router" and comp.replay_buffer is not None:
+            from memory.hopfield_memory import train_router_step
+            return train_router_step(comp.model, comp.optimizer, comp.replay_buffer)  # type: ignore
+
         if name == "transformer_wm" and comp.replay_buffer is not None:
             from memory.neural_working_memory import train_transformer_wm_step
             return train_transformer_wm_step(comp.model, comp.optimizer, comp.replay_buffer)  # type: ignore
@@ -280,6 +329,12 @@ class TrainingCoordinator:
         if name == "salience_mlp" and comp.replay_buffer is not None:
             from memory.salience import train_salience_step
             return train_salience_step(comp.model, comp.optimizer, comp.replay_buffer)  # type: ignore
+
+        if name == "fast_weight" and comp.replay_buffer is not None:
+            from memory.hopfield_memory import train_fast_weight_step
+            # Train the first module's slow params as representative
+            first_module = comp.model.modules_list[0] if hasattr(comp.model, "modules_list") else comp.model
+            return train_fast_weight_step(first_module, comp.optimizer, comp.replay_buffer)  # type: ignore
 
         return None
 
@@ -325,6 +380,12 @@ class TrainingCoordinator:
         if comp and comp.enabled and comp.replay_buffer is not None:
             comp.replay_buffer.push(query, positive)
 
+    def push_router_experience(self, query: Any, module_idx: int, reward: float) -> None:
+        """Push a (query, module_idx, reward) tuple for router training."""
+        comp = self.components.get("router")
+        if comp and comp.enabled and comp.replay_buffer is not None:
+            comp.replay_buffer.push(query, module_idx, reward)
+
     def push_transformer_wm_experience(self, sequence: Any, target_next: Any) -> None:
         """Push a (sequence_snapshot, actual_next_embedding) pair for WM training."""
         comp = self.components.get("transformer_wm")
@@ -336,6 +397,12 @@ class TrainingCoordinator:
         comp = self.components.get("gru_predictor")
         if comp and comp.enabled and comp.replay_buffer is not None:
             comp.replay_buffer.push(sequence, target_next)
+
+    def push_fast_weight_experience(self, query: Any, target: Any) -> None:
+        """Push a (query, target) pair for fast-weight slow-parameter training."""
+        comp = self.components.get("fast_weight")
+        if comp and comp.enabled and comp.replay_buffer is not None:
+            comp.replay_buffer.push(query, target)
 
     def push_salience_experience(self, signals: Any, target: float) -> None:
         """Push a (signals, target_salience) pair for salience MLP training."""
@@ -387,6 +454,23 @@ class TrainingCoordinator:
         meta_path = path / "coordinator_meta.json"
         with open(meta_path, "w") as f:
             json.dump(state, f, indent=2)
+
+        # Save Hopfield decode index alongside checkpoint.
+        # Always save if the model exists, even when training is disabled,
+        # so that memories persist across sessions.
+        hopfield_comp = self.components.get("hopfield")
+        if hopfield_comp and hopfield_comp.model is not None:
+            # Also save hopfield model weights if not already saved above
+            comp_path = path / "hopfield_model.pt"
+            if not comp_path.exists():
+                torch.save(hopfield_comp.model.state_dict(), comp_path)
+            from memory.hopfield_memory import ModularFastWeightMemory, ModularHippocampalMemory
+            if isinstance(hopfield_comp.model, ModularFastWeightMemory):
+                hopfield_comp.model.save_decode_index(path / "fast_weight_decode.json")
+            elif isinstance(hopfield_comp.model, ModularHippocampalMemory):
+                hopfield_comp.model.save_decode_index(path / "modular_hopfield_decode.json")
+            else:
+                hopfield_comp.model.save_decode_index(path / "hopfield_decode.json")
 
         logger.info("Saved checkpoint to %s (step %d)", path, self.global_step)
 
@@ -447,6 +531,40 @@ class TrainingCoordinator:
             comp.last_loss = comp_meta.get("last_loss", None)
 
         logger.info("Loaded checkpoint from %s (step %d)", path, self.global_step)
+
+        # Load Hopfield decode index if present (always, even when training disabled)
+        hopfield_comp = self.components.get("hopfield")
+        if hopfield_comp and hopfield_comp.model is not None:
+            from memory.hopfield_memory import ModularFastWeightMemory, ModularHippocampalMemory
+            is_fast_weight = isinstance(hopfield_comp.model, ModularFastWeightMemory)
+            is_modular = isinstance(hopfield_comp.model, ModularHippocampalMemory)
+            fast_weight_path = path / "fast_weight_decode.json"
+            modular_path = path / "modular_hopfield_decode.json"
+            legacy_path = path / "hopfield_decode.json"
+
+            if is_fast_weight and fast_weight_path.exists():
+                hopfield_comp.model.load_decode_index(fast_weight_path)
+            elif is_fast_weight:
+                logger.warning(
+                    "Fast-weight model loaded but no fast_weight_decode.json found at %s",
+                    path,
+                )
+            elif is_modular and modular_path.exists():
+                hopfield_comp.model.load_decode_index(modular_path)
+            elif is_modular and legacy_path.exists():
+                logger.warning(
+                    "Modular Hopfield loaded but only legacy decode index found at %s. "
+                    "Legacy decode data will be ignored — retrain or re-seed.",
+                    legacy_path,
+                )
+            elif not is_modular and legacy_path.exists():
+                hopfield_comp.model.load_decode_index(legacy_path)
+            elif not is_modular and modular_path.exists():
+                logger.warning(
+                    "Legacy Hopfield loaded but modular decode index found at %s. "
+                    "Modular data will be ignored.",
+                    modular_path,
+                )
 
     # ── Diagnostics ─────────────────────────────────────────────────
 

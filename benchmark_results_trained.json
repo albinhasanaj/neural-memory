@@ -1,0 +1,974 @@
+[
+  {
+    "tier": "Tier 1 (Legacy)",
+    "description": "Legacy Hopfield (Phase 1)",
+    "memory_type": "Explicit patterns",
+    "capacity_label": "2,048",
+    "stores_data": "Yes (buffer rows)",
+    "num_conversations": 8,
+    "recall_at_1": 1.0,
+    "recall_at_3": 1.0,
+    "recall_at_5": 1.0,
+    "mean_mrr": 1.0,
+    "mean_storage_rate": 0.7875,
+    "hopfield_accuracy": 1.0,
+    "pipeline_accuracy": 0.875,
+    "mean_retrieval_latency_ms": 5.37241249935505,
+    "per_conversation": [
+      {
+        "id": "eval_python_prefs",
+        "topic": "framework preference",
+        "stored_count": 3,
+        "total_turns": 5,
+        "storage_rate": 0.6,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": true,
+        "retrieval_latency_ms": 37.89379999943776,
+        "retrieved_texts": [
+          "Yes, I pair FastAPI with SQLAlchemy and Pydantic for data validation.",
+          "Python is a great choice for backend work!",
+          "FastAPI is excellent for async APIs. Do you use it with SQLAlchemy?"
+        ]
+      },
+      {
+        "id": "eval_pet_name",
+        "topic": "pet name",
+        "stored_count": 4,
+        "total_turns": 4,
+        "storage_rate": 1.0,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": true,
+        "retrieval_latency_ms": 0.6613999994442565,
+        "retrieved_texts": [
+          "Biscuit is an adorable name! How old is Biscuit?",
+          "Golden retrievers are natural swimmers!",
+          "She's 3 years old and loves swimming in the lake.",
+          "I have a golden retriever named Biscuit."
+        ]
+      },
+      {
+        "id": "eval_work_project",
+        "topic": "work project",
+        "stored_count": 4,
+        "total_turns": 5,
+        "storage_rate": 0.8,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": true,
+        "retrieval_latency_ms": 1.2189999997644918,
+        "retrieved_texts": [
+          "Transformers work well for sequential recommendation.",
+          "At work, I'm building a recommendation engine for e-commerce.",
+          "That's an interesting project! What approach are you taking?",
+          "We're using collaborative filtering with a transformer model."
+        ]
+      },
+      {
+        "id": "eval_travel_plan",
+        "topic": "travel plans",
+        "stored_count": 2,
+        "total_turns": 4,
+        "storage_rate": 0.5,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": true,
+        "retrieval_latency_ms": 0.8649999999761349,
+        "retrieved_texts": [
+          "Fushimi Inari and Kinkaku-ji are must-sees in Kyoto.",
+          "April is the perfect time for hanami! Which cities?"
+        ]
+      },
+      {
+        "id": "eval_health_routine",
+        "topic": "health routine",
+        "stored_count": 3,
+        "total_turns": 5,
+        "storage_rate": 0.6,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 0.6666999997833045,
+        "retrieved_texts": [
+          "I've been doing intermittent fasting, 16:8 schedule.",
+          "About six months now. I've lost 15 pounds so far.",
+          "Running fasted can boost fat oxidation. How long have you been doing this?"
+        ]
+      },
+      {
+        "id": "eval_music_taste",
+        "topic": "music taste",
+        "stored_count": 3,
+        "total_turns": 3,
+        "storage_rate": 1.0,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": true,
+        "retrieval_latency_ms": 0.5078999984107213,
+        "retrieved_texts": [
+          "Miles Davis is legendary! Kind of Blue is a masterpiece.",
+          "I've been really into jazz lately, especially Miles Davis.",
+          "That's my favorite album! I also love Coltrane's A Love Supreme."
+        ]
+      },
+      {
+        "id": "eval_tech_setup",
+        "topic": "computer specs",
+        "stored_count": 4,
+        "total_turns": 4,
+        "storage_rate": 1.0,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": true,
+        "retrieval_latency_ms": 0.5791999992652563,
+        "retrieved_texts": [
+          "I just built a new PC with an RTX 4090 and 64GB RAM.",
+          "That's a beast! What CPU did you go with?",
+          "AMD Ryzen 9 7950X. I use it mainly for deep learning research.",
+          "The 7950X with a 4090 is a great combo for ML workloads."
+        ]
+      },
+      {
+        "id": "eval_learning_goals",
+        "topic": "learning goals",
+        "stored_count": 4,
+        "total_turns": 5,
+        "storage_rate": 0.8,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": true,
+        "retrieval_latency_ms": 0.5862999987584772,
+        "retrieved_texts": [
+          "I want to rewrite our data pipeline's hot path from Python to Rust.",
+          "Exactly! I'm also interested in writing a custom memory allocator.",
+          "PyO3 makes Python-Rust interop smooth.",
+          "Rust is great for systems! Any specific projects in mind?"
+        ]
+      }
+    ]
+  },
+  {
+    "tier": "Tier 2 (Modular)",
+    "description": "Modular Hopfield (Phase 2)",
+    "memory_type": "Explicit patterns",
+    "capacity_label": "8,192",
+    "stores_data": "Yes (buffer rows)",
+    "num_conversations": 8,
+    "recall_at_1": 1.0,
+    "recall_at_3": 1.0,
+    "recall_at_5": 1.0,
+    "mean_mrr": 1.0,
+    "mean_storage_rate": 0.6625,
+    "hopfield_accuracy": 0.25,
+    "pipeline_accuracy": 0.0,
+    "mean_retrieval_latency_ms": 2.3038000003907655,
+    "per_conversation": [
+      {
+        "id": "eval_python_prefs",
+        "topic": "framework preference",
+        "stored_count": 3,
+        "total_turns": 5,
+        "storage_rate": 0.6,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 1.4972999997553416,
+        "retrieved_texts": [
+          "Yes, I pair FastAPI with SQLAlchemy and Pydantic for data validation.",
+          "Python is a great choice for backend work!",
+          "FastAPI is excellent for async APIs. Do you use it with SQLAlchemy?"
+        ]
+      },
+      {
+        "id": "eval_pet_name",
+        "topic": "pet name",
+        "stored_count": 4,
+        "total_turns": 4,
+        "storage_rate": 1.0,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 7.022800000413554,
+        "retrieved_texts": [
+          "Biscuit is an adorable name! How old is Biscuit?",
+          "Golden retrievers are natural swimmers!",
+          "She's 3 years old and loves swimming in the lake.",
+          "I have a golden retriever named Biscuit."
+        ]
+      },
+      {
+        "id": "eval_work_project",
+        "topic": "work project",
+        "stored_count": 2,
+        "total_turns": 5,
+        "storage_rate": 0.4,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 2.654600000823848,
+        "retrieved_texts": [
+          "Transformers work well for sequential recommendation.",
+          "At work, I'm building a recommendation engine for e-commerce."
+        ]
+      },
+      {
+        "id": "eval_travel_plan",
+        "topic": "travel plans",
+        "stored_count": 2,
+        "total_turns": 4,
+        "storage_rate": 0.5,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 2.7859000001626555,
+        "retrieved_texts": [
+          "Fushimi Inari and Kinkaku-ji are must-sees in Kyoto.",
+          "April is the perfect time for hanami! Which cities?"
+        ]
+      },
+      {
+        "id": "eval_health_routine",
+        "topic": "health routine",
+        "stored_count": 2,
+        "total_turns": 5,
+        "storage_rate": 0.4,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 0.7891999994171783,
+        "retrieved_texts": [
+          "Running fasted can boost fat oxidation. How long have you been doing this?",
+          "16:8 is a popular IF schedule. When is your eating window?"
+        ]
+      },
+      {
+        "id": "eval_music_taste",
+        "topic": "music taste",
+        "stored_count": 3,
+        "total_turns": 3,
+        "storage_rate": 1.0,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 2.057700001387275,
+        "retrieved_texts": [
+          "Miles Davis is legendary! Kind of Blue is a masterpiece.",
+          "I've been really into jazz lately, especially Miles Davis.",
+          "That's my favorite album! I also love Coltrane's A Love Supreme."
+        ]
+      },
+      {
+        "id": "eval_tech_setup",
+        "topic": "computer specs",
+        "stored_count": 4,
+        "total_turns": 4,
+        "storage_rate": 1.0,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 0.8120000002236338,
+        "retrieved_texts": [
+          "I just built a new PC with an RTX 4090 and 64GB RAM.",
+          "That's a beast! What CPU did you go with?",
+          "AMD Ryzen 9 7950X. I use it mainly for deep learning research.",
+          "The 7950X with a 4090 is a great combo for ML workloads."
+        ]
+      },
+      {
+        "id": "eval_learning_goals",
+        "topic": "learning goals",
+        "stored_count": 2,
+        "total_turns": 5,
+        "storage_rate": 0.4,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 0.8109000009426381,
+        "retrieved_texts": [
+          "I want to learn Rust this year for systems programming.",
+          "PyO3 makes Python-Rust interop smooth."
+        ]
+      }
+    ]
+  },
+  {
+    "tier": "Tier 3 (FastWeight)",
+    "description": "Fast Weight Memory (Phase 3)",
+    "memory_type": "Weight matrices",
+    "capacity_label": "Theoretically \u221e",
+    "stores_data": "No (weights only)",
+    "num_conversations": 8,
+    "recall_at_1": 0.625,
+    "recall_at_3": 1.0,
+    "recall_at_5": 1.0,
+    "mean_mrr": 0.7916666666666666,
+    "mean_storage_rate": 0.7125,
+    "hopfield_accuracy": 0.375,
+    "pipeline_accuracy": 0.0,
+    "mean_retrieval_latency_ms": 3.3756000000266795,
+    "per_conversation": [
+      {
+        "id": "eval_python_prefs",
+        "topic": "framework preference",
+        "stored_count": 5,
+        "total_turns": 5,
+        "storage_rate": 1.0,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 8.663299999170704,
+        "retrieved_texts": [
+          "FastAPI is excellent for async APIs. Do you use it with SQLAlchemy?",
+          "I primarily use Python for backend development.",
+          "Python is a great choice for backend work!",
+          "Yes, I pair FastAPI with SQLAlchemy and Pydantic for data validation.",
+          "My favorite framework is FastAPI because of its async support."
+        ]
+      },
+      {
+        "id": "eval_pet_name",
+        "topic": "pet name",
+        "stored_count": 2,
+        "total_turns": 4,
+        "storage_rate": 0.5,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 8.397199999308214,
+        "retrieved_texts": [
+          "Biscuit is an adorable name! How old is Biscuit?",
+          "Golden retrievers are natural swimmers!"
+        ]
+      },
+      {
+        "id": "eval_work_project",
+        "topic": "work project",
+        "stored_count": 2,
+        "total_turns": 5,
+        "storage_rate": 0.4,
+        "recall_at_1": false,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 0.5,
+        "hopfield_hit": true,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 3.045100000235834,
+        "retrieved_texts": [
+          "Our dataset has about 50 million user interactions from the past year.",
+          "Transformers work well for sequential recommendation."
+        ]
+      },
+      {
+        "id": "eval_travel_plan",
+        "topic": "travel plans",
+        "stored_count": 1,
+        "total_turns": 4,
+        "storage_rate": 0.25,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 0.6192000000737607,
+        "retrieved_texts": [
+          "Tokyo for a week, then Kyoto for five days to visit the temples."
+        ]
+      },
+      {
+        "id": "eval_health_routine",
+        "topic": "health routine",
+        "stored_count": 5,
+        "total_turns": 5,
+        "storage_rate": 1.0,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 0.6123000002844492,
+        "retrieved_texts": [
+          "Running fasted can boost fat oxidation. How long have you been doing this?",
+          "16:8 is a popular IF schedule. When is your eating window?",
+          "I eat between noon and 8pm. I also run 5K every morning at 6am.",
+          "About six months now. I've lost 15 pounds so far.",
+          "I've been doing intermittent fasting, 16:8 schedule."
+        ]
+      },
+      {
+        "id": "eval_music_taste",
+        "topic": "music taste",
+        "stored_count": 3,
+        "total_turns": 3,
+        "storage_rate": 1.0,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 1.20240000069316,
+        "retrieved_texts": [
+          "I've been really into jazz lately, especially Miles Davis.",
+          "Miles Davis is legendary! Kind of Blue is a masterpiece.",
+          "That's my favorite album! I also love Coltrane's A Love Supreme."
+        ]
+      },
+      {
+        "id": "eval_tech_setup",
+        "topic": "computer specs",
+        "stored_count": 3,
+        "total_turns": 4,
+        "storage_rate": 0.75,
+        "recall_at_1": false,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 0.3333333333333333,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 1.4111000000411877,
+        "retrieved_texts": [
+          "The 7950X with a 4090 is a great combo for ML workloads.",
+          "That's a beast! What CPU did you go with?",
+          "I just built a new PC with an RTX 4090 and 64GB RAM."
+        ]
+      },
+      {
+        "id": "eval_learning_goals",
+        "topic": "learning goals",
+        "stored_count": 4,
+        "total_turns": 5,
+        "storage_rate": 0.8,
+        "recall_at_1": false,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 0.5,
+        "hopfield_hit": true,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 3.0542000004061265,
+        "retrieved_texts": [
+          "Exactly! I'm also interested in writing a custom memory allocator.",
+          "I want to rewrite our data pipeline's hot path from Python to Rust.",
+          "Rust is great for systems! Any specific projects in mind?",
+          "PyO3 makes Python-Rust interop smooth."
+        ]
+      }
+    ]
+  },
+  {
+    "specialization_report": {
+      "module_summaries": [
+        {
+          "module_index": 0,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 1,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 2,
+          "occupancy": 0.0156250165309757,
+          "write_count": 2,
+          "w_key_norm": 0.14172884821891785,
+          "w_value_norm": 0.1415790468454361,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 3,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 4,
+          "occupancy": 0.015624981606379151,
+          "write_count": 2,
+          "w_key_norm": 0.14288845658302307,
+          "w_value_norm": 0.1435367614030838,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 5,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 6,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 7,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 8,
+          "occupancy": 0.015625000232830644,
+          "write_count": 4,
+          "w_key_norm": 0.20456399023532867,
+          "w_value_norm": 0.2040390819311142,
+          "top_entities": [
+            [
+              "go",
+              1
+            ]
+          ],
+          "top_topics": []
+        },
+        {
+          "module_index": 9,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 10,
+          "occupancy": 0.015625013038516045,
+          "write_count": 2,
+          "w_key_norm": 0.14169973134994507,
+          "w_value_norm": 0.14267268776893616,
+          "top_entities": [
+            [
+              "FastAPI",
+              1
+            ],
+            [
+              "Python",
+              1
+            ],
+            [
+              "Rust",
+              1
+            ]
+          ],
+          "top_topics": [
+            [
+              "python",
+              2
+            ],
+            [
+              "programming",
+              1
+            ],
+            [
+              "personal",
+              1
+            ]
+          ]
+        },
+        {
+          "module_index": 11,
+          "occupancy": 0.015624986961483955,
+          "write_count": 5,
+          "w_key_norm": 0.24128469824790955,
+          "w_value_norm": 0.2369285672903061,
+          "top_entities": [
+            [
+              "FastAPI",
+              2
+            ]
+          ],
+          "top_topics": [
+            [
+              "python",
+              2
+            ],
+            [
+              "programming",
+              1
+            ],
+            [
+              "personal",
+              1
+            ]
+          ]
+        },
+        {
+          "module_index": 12,
+          "occupancy": 0.015624980442225931,
+          "write_count": 3,
+          "w_key_norm": 0.17640429735183716,
+          "w_value_norm": 0.17475394904613495,
+          "top_entities": [
+            [
+              "Miles Davis",
+              1
+            ],
+            [
+              "Love Supreme",
+              1
+            ]
+          ],
+          "top_topics": [
+            [
+              "personal",
+              1
+            ]
+          ]
+        },
+        {
+          "module_index": 13,
+          "occupancy": 0.015625008381903168,
+          "write_count": 3,
+          "w_key_norm": 0.1757948398590088,
+          "w_value_norm": 0.17404398322105408,
+          "top_entities": [
+            [
+              "Miles Davis",
+              1
+            ]
+          ],
+          "top_topics": []
+        },
+        {
+          "module_index": 14,
+          "occupancy": 0.015624838415533304,
+          "write_count": 1,
+          "w_key_norm": 0.10000000894069672,
+          "w_value_norm": 0.10000000894069672,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 15,
+          "occupancy": 0.015624988591298461,
+          "write_count": 2,
+          "w_key_norm": 0.14572946727275848,
+          "w_value_norm": 0.1427747756242752,
+          "top_entities": [
+            [
+              "FastAPI",
+              1
+            ]
+          ],
+          "top_topics": [
+            [
+              "python",
+              1
+            ]
+          ]
+        },
+        {
+          "module_index": 16,
+          "occupancy": 0.015625,
+          "write_count": 5,
+          "w_key_norm": 0.23078665137290955,
+          "w_value_norm": 0.2258489429950714,
+          "top_entities": [
+            [
+              "Python",
+              1
+            ],
+            [
+              "go",
+              1
+            ]
+          ],
+          "top_topics": [
+            [
+              "python",
+              1
+            ],
+            [
+              "web_development",
+              1
+            ]
+          ]
+        },
+        {
+          "module_index": 17,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 18,
+          "occupancy": 0.015624993247911334,
+          "write_count": 4,
+          "w_key_norm": 0.20985755324363708,
+          "w_value_norm": 0.2024698108434677,
+          "top_entities": [
+            [
+              "Python",
+              1
+            ],
+            [
+              "Love Supreme",
+              1
+            ]
+          ],
+          "top_topics": [
+            [
+              "python",
+              1
+            ],
+            [
+              "web_development",
+              1
+            ],
+            [
+              "personal",
+              1
+            ]
+          ]
+        },
+        {
+          "module_index": 19,
+          "occupancy": 0.015624997904524207,
+          "write_count": 1,
+          "w_key_norm": 0.09999999403953552,
+          "w_value_norm": 0.10000000149011612,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 20,
+          "occupancy": 0.0156250037252903,
+          "write_count": 1,
+          "w_key_norm": 0.09999998658895493,
+          "w_value_norm": 0.09999999403953552,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 21,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 22,
+          "occupancy": 0.01562498975545168,
+          "write_count": 1,
+          "w_key_norm": 0.10000000894069672,
+          "w_value_norm": 0.10000000894069672,
+          "top_entities": [
+            [
+              "Miles Davis",
+              1
+            ]
+          ],
+          "top_topics": []
+        },
+        {
+          "module_index": 23,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 24,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 25,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 26,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 27,
+          "occupancy": 0.015624987427145243,
+          "write_count": 1,
+          "w_key_norm": 0.10000000149011612,
+          "w_value_norm": 0.10000000149011612,
+          "top_entities": [
+            [
+              "Python",
+              1
+            ],
+            [
+              "Rust",
+              1
+            ]
+          ],
+          "top_topics": [
+            [
+              "python",
+              1
+            ]
+          ]
+        },
+        {
+          "module_index": 28,
+          "occupancy": 0.01562500838190317,
+          "write_count": 1,
+          "w_key_norm": 0.10000000149011612,
+          "w_value_norm": 0.10000000149011612,
+          "top_entities": [
+            [
+              "Miles Davis",
+              1
+            ]
+          ],
+          "top_topics": []
+        },
+        {
+          "module_index": 29,
+          "occupancy": 0.015624992859860258,
+          "write_count": 3,
+          "w_key_norm": 0.18678824603557587,
+          "w_value_norm": 0.1889079064130783,
+          "top_entities": [
+            [
+              "Python",
+              2
+            ]
+          ],
+          "top_topics": [
+            [
+              "python",
+              2
+            ],
+            [
+              "web_development",
+              2
+            ]
+          ]
+        },
+        {
+          "module_index": 30,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 31,
+          "occupancy": 0.015624996740370989,
+          "write_count": 1,
+          "w_key_norm": 0.10000000149011612,
+          "w_value_norm": 0.10000000894069672,
+          "top_entities": [],
+          "top_topics": []
+        }
+      ],
+      "weight_health": {
+        "w_key_norm_min": 0.0,
+        "w_key_norm_max": 0.24128469824790955,
+        "w_key_norm_mean": 0.08429771196097136,
+        "w_value_norm_min": 0.0,
+        "w_value_norm_max": 0.2369285672903061,
+        "w_value_norm_mean": 0.08367361058481038
+      },
+      "active_modules": 18,
+      "total_modules": 32
+    }
+  }
+]

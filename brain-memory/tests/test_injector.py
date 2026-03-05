@@ -10,8 +10,10 @@ from memory.episodic import EpisodicEntry
 from memory.injector import (
     build_memory_context,
     format_episodic_memories,
+    format_hopfield_memories,
     format_semantic_memories,
     inject,
+    inject_hopfield,
 )
 from memory.semantic import SemanticGraph
 
@@ -91,4 +93,56 @@ class TestInject:
         messages = [{"role": "user", "content": "Hi"}]
         g = SemanticGraph()
         result = inject(messages, g, [], [])
+        assert len(result) == 1
+
+
+class TestFormatHopfieldMemories:
+    """Hopfield-decoded memory formatting."""
+
+    def test_formats_decoded_dicts(self) -> None:
+        memories = [
+            {"text": "I like Python", "speaker": "user", "timestamp": 1709683200.0, "entities": ["Python"], "score": 0.9},
+            {"text": "Dark mode preferred", "speaker": "user", "timestamp": 1709769600.0, "entities": [], "score": 0.7},
+        ]
+        text = format_hopfield_memories(memories)
+        assert "user:" in text.lower() or "user:" in text
+        assert "Python" in text or "Dark mode" in text
+
+    def test_empty_list(self) -> None:
+        assert format_hopfield_memories([]) == ""
+
+    def test_truncates_long_text(self) -> None:
+        memories = [{"text": "x" * 300, "speaker": "user", "timestamp": 1709683200.0, "entities": [], "score": 0.5}]
+        text = format_hopfield_memories(memories)
+        assert "..." in text
+
+    def test_max_memories_limit(self) -> None:
+        memories = [
+            {"text": f"Memory {i}", "speaker": "user", "timestamp": 1709683200.0, "entities": [], "score": 0.5}
+            for i in range(10)
+        ]
+        text = format_hopfield_memories(memories, max_memories=2)
+        lines = [l for l in text.strip().split("\n") if l.strip().startswith("-")]
+        assert len(lines) <= 2
+
+
+class TestInjectHopfield:
+    """Hopfield injection into message list."""
+
+    def test_injects_hopfield_memories(self, sample_graph: SemanticGraph) -> None:
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": "Hello"},
+        ]
+        memories = [
+            {"text": "I like Python", "speaker": "user", "timestamp": 1709683200.0, "entities": ["Python"], "score": 0.9},
+        ]
+        result = inject_hopfield(messages, sample_graph, [("user", 0.9)], memories)
+        assert len(result) == 3
+        assert "[MEMORY CONTEXT" in result[1]["content"]
+
+    def test_no_injection_when_empty(self) -> None:
+        messages = [{"role": "user", "content": "Hi"}]
+        g = SemanticGraph()
+        result = inject_hopfield(messages, g, [], [])
         assert len(result) == 1

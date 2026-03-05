@@ -15,6 +15,7 @@ message (user or assistant) passes through here.  The observer:
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime, timezone
 from typing import Any
 
@@ -25,10 +26,11 @@ from memory.activation import SeedHints, SpreadingActivationEngine
 from memory.consolidation import run_consolidation_background
 from memory.encoder import EmbeddingEncoder, get_encoder
 from memory.episodic import EpisodicEntry, EpisodicStore
-from memory.injector import inject
+from memory.injector import inject, inject_hopfield
 from memory.salience import SalienceScorer
 from memory.semantic import SemanticGraph
 from memory.working_memory import WorkingMemory
+from memory.neural_events import event_bus
 from nlp.entity_extractor import extract_entities
 from nlp.intent_detector import IntentCueResult, detect_intent_cues
 from nlp.topic_tagger import extract_topics
@@ -299,8 +301,15 @@ class NeuralMemoryObserver(MemoryObserver):
             self._gate = DopaminergicGate()
 
         if settings.use_hopfield_memory:
-            from memory.hopfield_memory import HippocampalMemory
-            self._hopfield = HippocampalMemory()
+            if settings.use_fast_weight_memory and settings.use_modular_hopfield:
+                from memory.hopfield_memory import ModularFastWeightMemory
+                self._hopfield = ModularFastWeightMemory()
+            elif settings.use_modular_hopfield:
+                from memory.hopfield_memory import ModularHippocampalMemory
+                self._hopfield = ModularHippocampalMemory()
+            else:
+                from memory.hopfield_memory import LegacyHippocampalMemory
+                self._hopfield = LegacyHippocampalMemory()
 
         if settings.use_learned_forgetting:
             from memory.forgetting import ForgettingNetwork
@@ -363,6 +372,9 @@ class NeuralMemoryObserver(MemoryObserver):
                 embedding = self._pattern_separator.separate(embedding)
             # Push to pattern sep replay buffer
             self._trainer.push_pattern_sep_experience(original_embedding)
+
+        # -- emit encode event
+        event_bus.emit('encode', text=text[:100], embedding_norm=float(embedding.norm().item()), speaker=speaker)
 
         # 3. NLP signals
         entities = extract_entities(text)
@@ -435,6 +447,11 @@ class NeuralMemoryObserver(MemoryObserver):
             )
             should_store = salience >= settings.salience_threshold
 
+        # -- emit gate decision event
+        event_bus.emit('gate_decision', stored=should_store, salience=float(salience),
+                       novelty=float(novelty), prediction_error=float(pred_err),
+                       entity_density=float(entity_density), emphasis=float(emphasis))
+
         stored = False
         episode_id: str | None = None
 
@@ -452,12 +469,23 @@ class NeuralMemoryObserver(MemoryObserver):
             stored = True
             episode_id = entry.id
 
-            # 8. Hopfield storage
+            # 8. Hopfield storage (with decode metadata)
             if self._hopfield is not None:
                 self._hopfield.store(
                     embedding=embedding,
                     episode_id=entry.id,
+                    metadata={
+                        "text": text,
+                        "speaker": speaker,
+                        "timestamp": time.time(),
+                        "entities": entities,
+                        "topics": topics,
+                        "salience": salience,
+                    },
                 )
+                # -- emit write event
+                event_bus.emit('write', episode_id=entry.id, text=text[:100],
+                               entities=entities, salience=float(salience))
                 # Push retrieval training pair: query=embedding, positive=embedding
                 # (the network should retrieve stored patterns matching the query)
                 self._trainer.push_hopfield_experience(embedding, embedding)
@@ -527,8 +555,12 @@ class NeuralMemoryObserver(MemoryObserver):
         """Run activation (algorithmic or GAT), Hopfield retrieval, forgetting
         re-ranking, and inject a single memory context block.
 
-        This replaces — rather than extends — the base class method so that
-        only ONE ``[MEMORY CONTEXT]`` block is ever produced.
+        When ``use_hopfield_memory`` is enabled, Hopfield is the PRIMARY
+        retrieval engine.  Spreading activation serves as a re-ranking
+        signal only.  The episodic dict is NOT queried.
+
+        When ``use_hopfield_memory`` is disabled, falls back to the
+        original episodic-dict retrieval path.
         """
         ctx = self.working_memory.context_vector
         if ctx is None:
@@ -557,7 +589,178 @@ class NeuralMemoryObserver(MemoryObserver):
             self.activation_engine.rebuild()
             activated = self.activation_engine.activate(ctx_emb, hints=hints)
 
-        # ── Gather episodes linked to activated nodes ────────────────
+        # -- emit activate event
+        event_bus.emit('activate', num_activated=len(activated),
+                       top_nodes=[(nid, float(score)) for nid, score in activated[:5]])
+
+        # ── Hopfield-first path (PRIMARY) ────────────────────────────
+        if self._hopfield is not None and settings.use_hopfield_memory:
+            return self._hopfield_first_inject(
+                messages, ctx, ctx_emb, activated,
+            )
+
+        # ── Fallback: episodic-dict path (backward compatible) ───────
+        return self._episodic_fallback_inject(
+            messages, ctx, ctx_emb, activated,
+        )
+
+    def _hopfield_first_inject(
+        self,
+        messages: list[dict[str, Any]],
+        ctx: torch.Tensor,
+        ctx_emb: torch.Tensor,
+        activated: list[tuple[str, float]],
+    ) -> tuple[list[dict[str, Any]], list[tuple[str, float]]]:
+        """Hopfield-primary retrieval path.
+
+        1. Hopfield ``retrieve_decoded()`` provides candidates
+        2. Spreading activation re-ranks via entity overlap
+        3. Forgetting filter (if enabled)
+        4. Gate reward from Hopfield attention weights
+        5. Inject using decoded text
+        """
+        assert self._hopfield is not None
+
+        # Step 1: Hopfield retrieval (primary)
+        hopfield_results = self._hopfield.retrieve_decoded(ctx_emb, top_k=10)
+        logger.debug(
+            "Hopfield-first retrieval: %d results (episodic dict NOT queried)",
+            len(hopfield_results),
+        )
+
+        # Step 2: Spreading activation re-ranking
+        # Build lookup: node label (lower) → activation strength
+        activated_labels: dict[str, float] = {}
+        for node_id, strength in activated:
+            node = self.graph.get_node(node_id)
+            if node:
+                activated_labels[node.label.lower()] = strength
+                activated_labels[node_id] = strength
+
+        for result in hopfield_results:
+            boost = 0.0
+            for ent in result.get("entities", []):
+                ent_lower = ent.lower()
+                if ent_lower in activated_labels:
+                    boost = max(boost, activated_labels[ent_lower])
+            result["score"] = result["score"] + boost * 0.2  # gentle boost
+
+        # Step 2b: Identity & recency re-ranking
+        # Identity signals: first-person statements about the user (name, age, preferences)
+        _IDENTITY_PATTERNS = (
+            "my name", "i am", "i'm", "years old", "i live", "i work",
+            "i like", "i love", "i hate", "my age", "my job", "my hobby",
+            "i study", "i go to", "i play", "my favorite", "my favourite",
+        )
+        intent = getattr(self, "_last_intent", None)
+        is_recall_query = intent.is_recall if intent else False
+        # Also detect "about me" / "know me" / "who am i" style questions
+        last_user_text = ""
+        for msg in reversed(messages):
+            if msg.get("role") == "user":
+                last_user_text = msg.get("content", "").lower()
+                break
+        is_about_user = any(p in last_user_text for p in (
+            "about me", "know me", "know about me", "who am i",
+            "my name", "my age", "remember me", "what do you know",
+        ))
+
+        now = time.time()
+        for result in hopfield_results:
+            text_lower = result.get("text", "").lower()
+            speaker = result.get("speaker", "")
+
+            # Identity bonus: memories that contain personal facts
+            if any(pat in text_lower for pat in _IDENTITY_PATTERNS):
+                identity_boost = 0.15 if (is_recall_query or is_about_user) else 0.05
+                result["score"] += identity_boost
+
+            # Recency bonus: newer memories get a small bump
+            ts = result.get("timestamp", 0.0)
+            if isinstance(ts, (int, float)) and ts > 0:
+                age_hours = (now - ts) / 3600
+                # 0.05 for very recent, decaying to 0 over ~24h
+                recency_boost = max(0.0, 0.05 * (1.0 - age_hours / 24.0))
+                result["score"] += recency_boost
+
+            # User messages slightly more important than assistant echoes
+            if speaker == "user":
+                result["score"] += 0.02
+
+        # Re-sort after boosting
+        hopfield_results.sort(key=lambda r: r["score"], reverse=True)
+
+        # Step 3: Forgetting filter (if enabled)
+        if (
+            settings.use_learned_forgetting
+            and self._forgetting_net is not None
+            and hopfield_results
+        ):
+            hopfield_results = self._apply_forgetting_reranking_hopfield(
+                hopfield_results, ctx,
+            )
+
+        # Step 4: Gate reward — reward gate for patterns with high attention
+        #         + Router experience push for modular Hopfield
+        if self._trainer is not None:
+            for result in hopfield_results:
+                if result["score"] >= 0.5:
+                    eid = result.get("episode_id", "")
+                    if eid:
+                        source_mod = result.get("source_module")
+                        # Fast-weight path: reinforce retrieval + router experience
+                        from memory.hopfield_memory import ModularFastWeightMemory
+                        if isinstance(self._hopfield, ModularFastWeightMemory):
+                            if source_mod is not None:
+                                self._hopfield.modules_list[source_mod].reinforce_retrieval(ctx_emb)
+                                self._trainer.push_router_experience(
+                                    ctx_emb, source_mod, reward=result["score"],
+                                )
+                                self._trainer.push_fast_weight_experience(ctx_emb, ctx_emb)
+                            continue
+                        # Modular / legacy Hopfield path: use slot_index
+                        if source_mod is not None and hasattr(self._hopfield, "modules_list"):
+                            emb_t = self._hopfield.modules_list[source_mod].values[result["slot_index"]]
+                        elif hasattr(self._hopfield, "values"):
+                            emb_t = self._hopfield.values[result["slot_index"]]
+                        else:
+                            continue
+                        self._trainer.reward_gate_for_retrieval(
+                            [emb_t], reward=result["score"],
+                        )
+                        # Router training experience
+                        if source_mod is not None:
+                            self._trainer.push_router_experience(
+                                ctx_emb, source_mod, reward=result["score"],
+                            )
+
+        # -- emit retrieve event
+        event_bus.emit('retrieve',
+                       num_results=len(hopfield_results),
+                       top_score=hopfield_results[0]['score'] if hopfield_results else 0,
+                       results=[{'text': r.get('text', '')[:80], 'score': r['score'],
+                                 'source_module': r.get('source_module', -1)}
+                                for r in hopfield_results[:5]])
+
+        # Step 5: Inject using Hopfield-decoded text
+        modified = inject_hopfield(messages, self.graph, activated, hopfield_results)
+
+        # -- emit inject event
+        n_injected = len(modified) - len(messages)
+        if n_injected > 0:
+            event_bus.emit('inject', num_memories=len(hopfield_results),
+                           memory_texts=[r.get('text', '')[:80] for r in hopfield_results[:5]])
+
+        return modified, activated
+
+    def _episodic_fallback_inject(
+        self,
+        messages: list[dict[str, Any]],
+        ctx: torch.Tensor,
+        ctx_emb: torch.Tensor,
+        activated: list[tuple[str, float]],
+    ) -> tuple[list[dict[str, Any]], list[tuple[str, float]]]:
+        """Original episodic-dict retrieval path (backward compatible)."""
         episode_ids: set[str] = set()
         for node_id, strength in activated:
             node = self.graph.get_node(node_id)
@@ -568,18 +771,9 @@ class NeuralMemoryObserver(MemoryObserver):
                     ]:
                         episode_ids.add(ep.id)
 
-        # ── Hopfield retrieval → merge episode sets ──────────────────
-        hopfield_episode_scores: dict[str, float] = {}
-        if self._hopfield is not None and ctx_emb is not None:
-            hopfield_results = self._hopfield.retrieve_episode_ids(ctx_emb, top_k=5)
-            if hopfield_results:
-                for eid, weight in hopfield_results:
-                    hopfield_episode_scores[eid] = float(weight)
-                    episode_ids.add(eid)
-
         episodes = self.episodic_store.retrieve_by_ids(list(episode_ids))
 
-        # ── Forgetting network re-ranking ────────────────────────────
+        # Forgetting network re-ranking
         if (
             settings.use_learned_forgetting
             and self._forgetting_net is not None
@@ -587,10 +781,15 @@ class NeuralMemoryObserver(MemoryObserver):
         ):
             episodes = self._apply_forgetting_reranking(episodes, ctx)
 
-        # ── Inject exactly once ──────────────────────────────────────
         modified = inject(messages, self.graph, activated, episodes)
 
-        # ── Gate reward for retrieved memories ───────────────────────
+        # -- emit inject event (episodic fallback path)
+        n_injected = len(modified) - len(messages)
+        if n_injected > 0:
+            event_bus.emit('inject', num_memories=len(episodes),
+                           memory_texts=[ep.raw_text[:80] for ep in episodes[:5]])
+
+        # Gate reward for retrieved memories
         retrieved_embeddings: list[torch.Tensor] = []
         for ep in episodes:
             retrieved_embeddings.append(
@@ -695,4 +894,85 @@ class NeuralMemoryObserver(MemoryObserver):
                 result.append(ep)
 
         result.sort(key=lambda e: e.activation, reverse=True)
+        return result
+
+    def _apply_forgetting_reranking_hopfield(
+        self,
+        hopfield_results: list[dict],
+        context_vector: torch.Tensor,
+    ) -> list[dict]:
+        """Re-rank Hopfield-decoded results using the forgetting network."""
+        from memory.forgetting import build_forgetting_scalars
+
+        if not hopfield_results:
+            return hopfield_results
+
+        now_ts = time.time()
+        embeddings_list = []
+        scalars_list = []
+        base_activations = []
+        delta_ts = []
+        kept_mems = []  # track which results we can actually rerank
+
+        for mem in hopfield_results:
+            slot_idx = mem.get("slot_index")
+            source_mod = mem.get("source_module")
+            if slot_idx is not None and source_mod is not None and hasattr(self._hopfield, "modules_list"):
+                emb = self._hopfield.modules_list[source_mod].values[slot_idx]
+            elif slot_idx is not None and hasattr(self._hopfield, "values"):
+                emb = self._hopfield.values[slot_idx]
+            else:
+                # No slot info — keep with original score, skip forgetting reranking
+                continue
+            kept_mems.append(mem)
+            embeddings_list.append(emb)
+
+            ts = mem.get("timestamp", now_ts)
+            age_hours = (now_ts - ts) / 3600.0
+
+            emb_device = emb.to(settings.resolved_device)
+            ctx_device = context_vector.to(settings.resolved_device)
+            if ctx_device.shape[-1] != emb_device.shape[-1]:
+                with torch.no_grad():
+                    ctx_proj = self.working_memory.encoder.predictor(ctx_device)
+                ctx_sim = float(torch.nn.functional.cosine_similarity(
+                    emb_device.unsqueeze(0), ctx_proj.unsqueeze(0), dim=1
+                ).item())
+            else:
+                ctx_sim = float(torch.nn.functional.cosine_similarity(
+                    emb_device.unsqueeze(0), ctx_device.unsqueeze(0), dim=1
+                ).item())
+
+            scalars = build_forgetting_scalars(
+                age_hours=age_hours,
+                access_count=1,
+                salience=mem.get("salience", 0.5),
+                last_activation=mem["score"],
+                context_similarity=ctx_sim,
+            )
+            scalars_list.append(scalars)
+            base_activations.append(mem["score"])
+            delta_ts.append(age_hours)
+
+        if not kept_mems:
+            return hopfield_results
+
+        batch_emb = torch.stack(embeddings_list).to(settings.resolved_device)
+        batch_scalars = torch.stack(scalars_list).to(settings.resolved_device)
+        batch_base = torch.tensor(base_activations, dtype=torch.float32, device=settings.resolved_device)
+        batch_dt = torch.tensor(delta_ts, dtype=torch.float32, device=settings.resolved_device)
+
+        with torch.no_grad():
+            effective = self._forgetting_net.compute_effective_activation(
+                batch_base, batch_emb, batch_scalars, batch_dt, context_vector,
+            )
+
+        result = []
+        for i, mem in enumerate(kept_mems):
+            eff_score = float(effective[i].item())
+            if eff_score >= settings.forgetting_threshold:
+                mem["score"] = eff_score
+                result.append(mem)
+
+        result.sort(key=lambda m: m["score"], reverse=True)
         return result

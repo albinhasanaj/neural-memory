@@ -208,6 +208,55 @@ class Settings(BaseSettings):
     gat_num_heads: int = 4
     hopfield_beta_init: float = 1.0
     hopfield_max_patterns: int = 2048
+
+    # ── Modular Hopfield (Phase 2) ──────────────────────────────────
+    use_modular_hopfield: bool = Field(
+        default=False,
+        description="Use M smaller HopfieldModules + learned MemoryRouter instead of monolithic HippocampalMemory.",
+    )
+    hopfield_num_modules: int = Field(
+        default=32,
+        description="Number of Hopfield sub-modules in modular mode.",
+    )
+    hopfield_patterns_per_module: int = Field(
+        default=256,
+        description="Max patterns per Hopfield sub-module.",
+    )
+    hopfield_top_k_write: int = Field(
+        default=2,
+        description="Number of modules to route each write to.",
+    )
+    hopfield_top_k_read: int = Field(
+        default=3,
+        description="Number of modules to query on each read.",
+    )
+    hopfield_router_lr: float = Field(
+        default=1e-4,
+        description="Learning rate for the MemoryRouter.",
+    )
+
+    # ── Fast-weight memory (Phase 3) ───────────────────────────────
+    use_fast_weight_memory: bool = Field(
+        default=False,
+        description="Use FastWeightModule (Hebbian weight matrices) instead of explicit pattern buffers.",
+    )
+    fast_weight_write_lr: float = Field(
+        default=0.1,
+        description="Hebbian write learning rate for fast-weight outer-product updates.",
+    )
+    fast_weight_hidden_dim: int = Field(
+        default=128,
+        description="Hidden dimension for fast-weight key/value projections.",
+    )
+    fast_weight_decay_factor: float = Field(
+        default=0.995,
+        description="Homeostatic decay rate applied to fast weights periodically.",
+    )
+    fast_weight_decay_interval: int = Field(
+        default=10,
+        description="Apply homeostatic decay every N writes.",
+    )
+
     vae_latent_dim: int = 64
     vae_metadata_dim: int = 32
     vae_replay_batch: int = 16

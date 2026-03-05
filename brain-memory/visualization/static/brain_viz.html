@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brain Memory — Neural Visualization</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { overflow: hidden; background: #050510; font-family: 'Courier New', monospace; }
+  canvas { display: block; }
+  #hud {
+    position: fixed; top: 20px; right: 20px; color: #00d4ff;
+    font-size: 13px; background: rgba(5,5,16,0.7); padding: 15px;
+    border-radius: 8px; border: 1px solid rgba(0,212,255,0.2);
+    min-width: 200px; pointer-events: none; z-index: 10;
+  }
+  #hud-title { font-size: 16px; margin-bottom: 10px; color: #00ffaa; }
+  #hud-last-event { margin-top: 10px; font-size: 11px; color: #666; }
+  #hud-salience {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    font-size: 18px; font-family: 'Courier New', monospace;
+    padding: 8px 20px; background: rgba(5,5,16,0.6); border-radius: 8px;
+    transition: opacity 0.5s; opacity: 0; pointer-events: none; z-index: 10;
+  }
+  #ws-status {
+    position: fixed; bottom: 20px; left: 20px; font-size: 11px;
+    color: #333; pointer-events: none; z-index: 10;
+  }
+</style>
+</head>
+<body>
+<div id="hud">
+  <div id="hud-title">BRAIN MEMORY</div>
+  <div id="hud-encodes">Encodes: 0</div>
+  <div id="hud-writes">Writes: 0</div>
+  <div id="hud-retrievals">Retrievals: 0</div>
+  <div id="hud-gate-rate">Store Rate: 0%</div>
+  <div id="hud-active">Active Modules: 0/32</div>
+  <div id="hud-last-event">Waiting...</div>
+</div>
+<div id="hud-salience"></div>
+<div id="ws-status">Connecting...</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+"use strict";
+
+// ── Constants ──────────────────────────────────────────────────
+const NUM_MODULES = 32;
+const COLORS = {
+  bg:        0x050510,
+  inactive:  0x1a1a3e,
+  dimGlow:   0x0a0a2e,
+  cyan:      0x00d4ff,
+  writeGreen:0x00ff88,
+  retrieveOrange: 0xff8800,
+  gateRed:   0xff3333,
+  activateOrange: 0xff6600,
+  injectCyan: 0x00ffff,
+  connBase:  0x0a1a3e,
+  particle:  0x0a2a4e,
+};
+
+// ── Scene setup ────────────────────────────────────────────────
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(COLORS.bg);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, 0, 25);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0x111122, 0.5));
+
+// ── Brain-shaped node positions (fibonacci ellipsoid) ──────────
+function generateBrainPositions(count) {
+  const positions = [];
+  const goldenRatio = (1 + Math.sqrt(5)) / 2;
+  // Use seeded-style offsets for deterministic layout
+  for (let i = 0; i < count; i++) {
+    const theta = 2 * Math.PI * i / goldenRatio;
+    const phi = Math.acos(1 - 2 * (i + 0.5) / count);
+    let x = Math.sin(phi) * Math.cos(theta) * 8;   // wide (hemispheres)
+    let y = Math.cos(phi) * 5;                       // shorter (top-bottom)
+    let z = Math.sin(phi) * Math.sin(theta) * 6;    // medium (front-back)
+    // Deterministic jitter based on index
+    const jx = Math.sin(i * 7.13) * 0.75;
+    const jy = Math.sin(i * 13.37) * 0.50;
+    const jz = Math.sin(i * 3.91) * 0.60;
+    positions.push(new THREE.Vector3(x + jx, y + jy, z + jz));
+  }
+  return positions;
+}
+
+const brainPositions = generateBrainPositions(NUM_MODULES);
+
+// ── Node creation ──────────────────────────────────────────────
+const nodes = [];
+const nodeGeometry = new THREE.SphereGeometry(0.4, 16, 16);
+
+function createNode(position, index) {
+  const material = new THREE.MeshStandardMaterial({
+    color: COLORS.inactive,
+    emissive: COLORS.dimGlow,
+    emissiveIntensity: 0.3,
+    transparent: true,
+    opacity: 0.8,
+  });
+  const mesh = new THREE.Mesh(nodeGeometry, material);
+  mesh.position.copy(position);
+  scene.add(mesh);
+
+  const light = new THREE.PointLight(COLORS.cyan, 0, 3);
+  light.position.copy(position);
+  scene.add(light);
+
+  return {
+    mesh, light, index, position,
+    baseColor: new THREE.Color(COLORS.inactive),
+    currentColor: new THREE.Color(COLORS.inactive),
+    targetColor: new THREE.Color(COLORS.inactive),
+    heat: 0,
+    writeCount: 0,
+    wKeyNorm: 0,
+  };
+}
+
+brainPositions.forEach(function(pos, i) {
+  nodes.push(createNode(pos, i));
+});
+
+// ── Connections (3 nearest neighbours per node) ────────────────
+const connections = [];
+
+(function createConnections() {
+  for (let i = 0; i < nodes.length; i++) {
+    var dists = [];
+    for (let j = 0; j < nodes.length; j++) {
+      if (j !== i) dists.push({ index: j, dist: nodes[i].position.distanceTo(nodes[j].position) });
+    }
+    dists.sort(function(a, b) { return a.dist - b.dist; });
+    for (let k = 0; k < 3; k++) {
+      var j = dists[k].index;
+      var exists = connections.some(function(c) {
+        return (c.from === i && c.to === j) || (c.from === j && c.to === i);
+      });
+      if (exists) continue;
+      var points = [nodes[i].position, nodes[j].position];
+      var geometry = new THREE.BufferGeometry().setFromPoints(points);
+      var material = new THREE.LineBasicMaterial({
+        color: COLORS.connBase, transparent: true, opacity: 0.15,
+      });
+      var line = new THREE.Line(geometry, material);
+      scene.add(line);
+      connections.push({
+        from: i, to: j, line: line, material: material,
+        baseOpacity: 0.15, currentOpacity: 0.15, pulseTime: 0,
+      });
+    }
+  }
+})();
+
+// ── Ambient particles (neural dust inside brain ellipsoid) ─────
+const particleCount = 500;
+const particleGeometry = new THREE.BufferGeometry();
+const particlePositions = new Float32Array(particleCount * 3);
+
+(function initParticles() {
+  var idx = 0;
+  while (idx < particleCount) {
+    var x = (Math.sin(idx * 1.618) * 0.5) * 20;   // deterministic spread
+    var y = (Math.sin(idx * 2.718) * 0.5) * 12;
+    var z = (Math.sin(idx * 3.141) * 0.5) * 15;
+    // Quick ellipsoid check
+    if ((x*x)/100 + (y*y)/36 + (z*z)/56 <= 1) {
+      particlePositions[idx * 3]     = x;
+      particlePositions[idx * 3 + 1] = y;
+      particlePositions[idx * 3 + 2] = z;
+      idx++;
+    } else {
+      // Retry with different seed
+      x = Math.sin(idx * 0.7 + idx) * 9;
+      y = Math.sin(idx * 1.3 + idx) * 5;
+      z = Math.sin(idx * 0.9 + idx) * 7;
+      particlePositions[idx * 3]     = x;
+      particlePositions[idx * 3 + 1] = y;
+      particlePositions[idx * 3 + 2] = z;
+      idx++;
+    }
+  }
+})();
+
+particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+var particleMaterial = new THREE.PointsMaterial({
+  color: COLORS.particle, size: 0.05, transparent: true, opacity: 0.4,
+});
+var particles = new THREE.Points(particleGeometry, particleMaterial);
+scene.add(particles);
+
+// ── Animation helpers ──────────────────────────────────────────
+function flashNode(index, color, intensity, durationSec) {
+  if (index < 0 || index >= nodes.length) return;
+  var node = nodes[index];
+  node.targetColor.setHex(color);
+  node.heat = Math.min(intensity, 1.0);
+  node.light.color.setHex(color);
+  node.light.intensity = intensity * 2;
+  setTimeout(function() {
+    node.targetColor.copy(node.baseColor);
+  }, durationSec * 1000);
+}
+
+function pulseAllNodes(color, intensity, durationSec) {
+  for (let i = 0; i < nodes.length; i++) flashNode(i, color, intensity, durationSec);
+}
+
+function createGatePulse(color) {
+  var ringGeo = new THREE.RingGeometry(0.1, 0.3, 32);
+  var ringMat = new THREE.MeshBasicMaterial({
+    color: color, transparent: true, opacity: 0.8, side: THREE.DoubleSide,
+  });
+  var ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.lookAt(camera.position);
+  scene.add(ring);
+  var startTime = performance.now();
+  (function animateRing() {
+    var elapsed = (performance.now() - startTime) / 1000;
+    if (elapsed > 1.0) { scene.remove(ring); ringGeo.dispose(); ringMat.dispose(); return; }
+    ring.scale.setScalar(1 + elapsed * 15);
+    ring.lookAt(camera.position);
+    ringMat.opacity = 0.8 * (1 - elapsed);
+    requestAnimationFrame(animateRing);
+  })();
+}
+
+function pulseConnectionsTo(targetIndex, color) {
+  connections.forEach(function(conn) {
+    if (conn.to === targetIndex || conn.from === targetIndex) {
+      conn.material.color.setHex(color);
+      conn.currentOpacity = 0.8;
+      conn.pulseTime = performance.now();
+    }
+  });
+}
+
+function createActivationWave(color) {
+  var burstCount = 50;
+  var geo = new THREE.BufferGeometry();
+  var pos = new Float32Array(burstCount * 3);
+  var vels = [];
+  for (let i = 0; i < burstCount; i++) {
+    pos[i * 3] = 0; pos[i * 3 + 1] = 0; pos[i * 3 + 2] = 0;
+    vels.push(new THREE.Vector3(
+      (Math.sin(i * 2.3) - 0.5) * 0.3,
+      (Math.sin(i * 3.7) - 0.5) * 0.2,
+      (Math.sin(i * 5.1) - 0.5) * 0.25
+    ));
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  var mat = new THREE.PointsMaterial({
+    color: color, size: 0.15, transparent: true, opacity: 1.0,
+  });
+  var burst = new THREE.Points(geo, mat);
+  scene.add(burst);
+  var startTime = performance.now();
+  (function animBurst() {
+    var elapsed = (performance.now() - startTime) / 1000;
+    if (elapsed > 2.0) { scene.remove(burst); geo.dispose(); mat.dispose(); return; }
+    var arr = burst.geometry.attributes.position.array;
+    for (let i = 0; i < burstCount; i++) {
+      arr[i * 3]     += vels[i].x;
+      arr[i * 3 + 1] += vels[i].y;
+      arr[i * 3 + 2] += vels[i].z;
+    }
+    burst.geometry.attributes.position.needsUpdate = true;
+    mat.opacity = 1.0 - elapsed / 2.0;
+    requestAnimationFrame(animBurst);
+  })();
+}
+
+function createCenterPulse(color, intensity) {
+  var pulseLight = new THREE.PointLight(color, intensity * 3, 20);
+  pulseLight.position.set(0, 0, 0);
+  scene.add(pulseLight);
+  var startTime = performance.now();
+  (function animPulse() {
+    var elapsed = (performance.now() - startTime) / 1000;
+    if (elapsed > 1.5) { scene.remove(pulseLight); return; }
+    pulseLight.intensity = intensity * 3 * (1 - elapsed / 1.5);
+    requestAnimationFrame(animPulse);
+  })();
+}
+
+// ── HUD ────────────────────────────────────────────────────────
+var stats = { encodes: 0, writes: 0, retrievals: 0, gates: 0, stores: 0 };
+
+function updateHUD(event) {
+  if (event.type === 'encode')   stats.encodes++;
+  if (event.type === 'write')    stats.writes++;
+  if (event.type === 'retrieve') stats.retrievals++;
+  if (event.type === 'gate_decision') {
+    stats.gates++;
+    if (event.data && event.data.stored) stats.stores++;
+  }
+  document.getElementById('hud-encodes').textContent    = 'Encodes: ' + stats.encodes;
+  document.getElementById('hud-writes').textContent     = 'Writes: ' + stats.writes;
+  document.getElementById('hud-retrievals').textContent = 'Retrievals: ' + stats.retrievals;
+  var rate = stats.gates > 0 ? Math.round(100 * stats.stores / stats.gates) : 0;
+  document.getElementById('hud-gate-rate').textContent  = 'Store Rate: ' + rate + '%';
+  document.getElementById('hud-last-event').textContent =
+    'Last: ' + event.type + ' (' + new Date().toLocaleTimeString() + ')';
+
+  var active = nodes.filter(function(n) { return n.writeCount > 0; }).length;
+  document.getElementById('hud-active').textContent = 'Active Modules: ' + active + '/32';
+}
+
+function updateSalienceHUD(data) {
+  var div = document.getElementById('hud-salience');
+  var stored = data.stored;
+  div.innerHTML =
+    '<span style="color:' + (stored ? '#00ff88' : '#ff3333') + '">' +
+    (stored ? 'STORE' : 'SKIP') + '</span> ' +
+    '<span style="color:#666;font-size:11px">' +
+    'sal=' + (data.salience || 0).toFixed(2) +
+    ' nov=' + (data.novelty || 0).toFixed(2) +
+    '</span>';
+  div.style.opacity = '1';
+  setTimeout(function() { div.style.opacity = '0'; }, 2000);
+}
+
+// ── Event handler ──────────────────────────────────────────────
+function handleNeuralEvent(event) {
+  updateHUD(event);
+
+  switch (event.type) {
+    case 'encode':
+      pulseAllNodes(COLORS.cyan, 0.2, 0.3);
+      break;
+
+    case 'gate_decision':
+      if (event.data && event.data.stored) {
+        createGatePulse(COLORS.writeGreen);
+      } else {
+        createGatePulse(COLORS.gateRed);
+      }
+      if (event.data) updateSalienceHUD(event.data);
+      break;
+
+    case 'write':
+      // Flash a spread of modules — pick 3-5 based on hash of episode_id
+      var writeModules = pickModulesFromEvent(event, 4);
+      writeModules.forEach(function(idx) {
+        flashNode(idx, COLORS.writeGreen, 1.0, 2.0);
+        pulseConnectionsTo(idx, COLORS.writeGreen);
+      });
+      break;
+
+    case 'retrieve':
+      // Light up source modules from results
+      var sourceModules = [];
+      if (event.data && event.data.results) {
+        event.data.results.forEach(function(r) {
+          var m = r.source_module;
+          if (typeof m === 'number' && m >= 0 && m < NUM_MODULES) {
+            if (sourceModules.indexOf(m) === -1) sourceModules.push(m);
+          }
+        });
+      }
+      if (sourceModules.length === 0) sourceModules = pickModulesFromEvent(event, 3);
+      sourceModules.forEach(function(idx) {
+        flashNode(idx, COLORS.retrieveOrange, 0.8, 1.5);
+      });
+      break;
+
+    case 'activate':
+      createActivationWave(COLORS.activateOrange);
+      // Light up a few nodes to show spreading activation
+      var actModules = pickModulesFromEvent(event, 5);
+      actModules.forEach(function(idx, i) {
+        setTimeout(function() {
+          flashNode(idx, COLORS.activateOrange, 0.5, 0.8);
+        }, i * 100); // Staggered wave effect
+      });
+      break;
+
+    case 'inject':
+      createCenterPulse(COLORS.injectCyan, 1.5);
+      break;
+  }
+
+  // Update module metadata if provided
+  if (event.modules) {
+    event.modules.forEach(function(m) {
+      var id = m.id;
+      if (id >= 0 && id < nodes.length) {
+        nodes[id].writeCount = m.write_count || 0;
+        nodes[id].wKeyNorm = m.w_key_norm || 0;
+        var scale = 1.0 + Math.min((m.write_count || 0) / 100, 0.5);
+        nodes[id].mesh.scale.setScalar(scale);
+        nodes[id].baseColor.setHex(m.write_count > 0 ? 0x1a2a4e : COLORS.inactive);
+      }
+    });
+  }
+}
+
+// Deterministic module-index picker based on event timestamp
+function pickModulesFromEvent(event, count) {
+  var seed = Math.floor((event.timestamp || Date.now() / 1000) * 1000) % 100000;
+  var picked = [];
+  for (let i = 0; i < count; i++) {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    var idx = seed % NUM_MODULES;
+    if (picked.indexOf(idx) === -1) picked.push(idx);
+  }
+  return picked;
+}
+
+// ── WebSocket ──────────────────────────────────────────────────
+var wsStatus = document.getElementById('ws-status');
+var reconnectDelay = 1000;
+
+function connectWS() {
+  var ws = new WebSocket('ws://' + window.location.host + '/ws');
+  ws.onopen = function() {
+    wsStatus.textContent = 'Connected';
+    wsStatus.style.color = '#0a4';
+    reconnectDelay = 1000;
+  };
+  ws.onmessage = function(evt) {
+    try {
+      var data = JSON.parse(evt.data);
+      handleNeuralEvent(data);
+    } catch (e) { /* ignore malformed */ }
+  };
+  ws.onclose = function() {
+    wsStatus.textContent = 'Disconnected — reconnecting...';
+    wsStatus.style.color = '#a33';
+    setTimeout(connectWS, reconnectDelay);
+    reconnectDelay = Math.min(reconnectDelay * 1.5, 10000);
+  };
+  ws.onerror = function() { ws.close(); };
+}
+connectWS();
+
+// ── Mouse drag rotation ────────────────────────────────────────
+var isDragging = false;
+var targetRotationX = 0, targetRotationY = 0;
+
+renderer.domElement.addEventListener('mousedown', function() { isDragging = true; });
+window.addEventListener('mouseup', function() { isDragging = false; });
+window.addEventListener('mousemove', function(e) {
+  if (isDragging) {
+    targetRotationY += e.movementX * 0.005;
+    targetRotationX += e.movementY * 0.005;
+    targetRotationX = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, targetRotationX));
+  }
+});
+
+// Touch support for mobile
+var lastTouch = null;
+renderer.domElement.addEventListener('touchstart', function(e) {
+  if (e.touches.length === 1) { lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }
+});
+renderer.domElement.addEventListener('touchmove', function(e) {
+  if (e.touches.length === 1 && lastTouch) {
+    var dx = e.touches[0].clientX - lastTouch.x;
+    var dy = e.touches[0].clientY - lastTouch.y;
+    targetRotationY += dx * 0.005;
+    targetRotationX += dy * 0.005;
+    targetRotationX = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, targetRotationX));
+    lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }
+});
+renderer.domElement.addEventListener('touchend', function() { lastTouch = null; });
+
+// ── Resize ─────────────────────────────────────────────────────
+window.addEventListener('resize', function() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ── Main animation loop ────────────────────────────────────────
+var autoRotation = 0;
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  // Camera orbit
+  var radius = 25;
+  camera.position.x = radius * Math.sin(targetRotationY) * Math.cos(targetRotationX);
+  camera.position.y = radius * Math.sin(targetRotationX);
+  camera.position.z = radius * Math.cos(targetRotationY) * Math.cos(targetRotationX);
+  camera.lookAt(0, 0, 0);
+
+  // Decay node heat and lerp colors
+  for (let i = 0; i < nodes.length; i++) {
+    var node = nodes[i];
+    node.heat *= 0.97;
+    node.currentColor.lerp(node.targetColor, 0.05);
+    node.mesh.material.emissive.copy(node.currentColor);
+    node.mesh.material.emissiveIntensity = 0.3 + node.heat * 0.7;
+    node.light.intensity *= 0.95;
+  }
+
+  // Decay connection pulses
+  for (let i = 0; i < connections.length; i++) {
+    var conn = connections[i];
+    conn.currentOpacity *= 0.97;
+    if (conn.currentOpacity < conn.baseOpacity) conn.currentOpacity = conn.baseOpacity;
+    conn.material.opacity = conn.currentOpacity;
+    if (conn.currentOpacity < conn.baseOpacity + 0.05) {
+      conn.material.color.setHex(COLORS.connBase);
+    }
+  }
+
+  // Gently animate particles (subtle vertical drift)
+  var pPos = particles.geometry.attributes.position.array;
+  var t = Date.now() * 0.001;
+  for (let i = 0; i < particleCount; i++) {
+    pPos[i * 3 + 1] += Math.sin(t + i) * 0.002;
+  }
+  particles.geometry.attributes.position.needsUpdate = true;
+
+  renderer.render(scene, camera);
+}
+
+animate();
+</script>
+</body>
+</html>

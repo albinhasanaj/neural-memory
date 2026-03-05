@@ -174,7 +174,7 @@ class DopaminergicGate(nn.Module):
         if random.random() < epsilon:
             decision = random.random() < 0.5
         else:
-            decision = prob >= 0.5
+            decision = prob >= 0.3
 
         return decision, prob
 

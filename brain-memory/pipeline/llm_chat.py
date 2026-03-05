@@ -320,6 +320,9 @@ def _print_banner() -> None:
     print("=" * 60)
     print("  Commands:")
     print("    /stats   — Show memory system statistics")
+    print("    /memory  — Show last injected memories")
+    print("    /modules — Show module specialization")
+    print("    /forget  — Clear fast-weight memory")
     print("    /clear   — Clear working memory")
     print("    /save    — Save checkpoint")
     print("    /quit    — Exit")
@@ -390,6 +393,40 @@ def main() -> None:
                     ckpt_path = "checkpoints/chat_session"
                     chat.observer._trainer.save_checkpoint(ckpt_path)
                     print(f"  Checkpoint saved to {ckpt_path}\n")
+                    continue
+                elif cmd == "/memory":
+                    from memory.neural_events import event_bus
+                    for event in reversed(event_bus.recent(50)):
+                        if event.event_type == "inject":
+                            for txt in event.data.get("memory_texts", []):
+                                print(f"  - {txt}")
+                            break
+                    else:
+                        print("  No injected memories yet.")
+                    print()
+                    continue
+                elif cmd == "/modules":
+                    hopfield = chat.observer._hopfield
+                    if hopfield is not None and hasattr(hopfield, "module_summary"):
+                        for m in hopfield.module_summary():
+                            if m["write_count"] > 0:
+                                print(
+                                    f"  Module {m['module_index']:2d}: "
+                                    f"writes={m['write_count']:3d}  "
+                                    f"w_key={m['w_key_norm']:.2f}  "
+                                    f"entities={[e[0] for e in m['top_entities'][:3]]}"
+                                )
+                    else:
+                        print("  No modular Hopfield available.")
+                    print()
+                    continue
+                elif cmd == "/forget":
+                    hopfield = chat.observer._hopfield
+                    if hopfield is not None and hasattr(hopfield, "clear"):
+                        hopfield.clear()
+                        print("  Fast-weight memory cleared.\n")
+                    else:
+                        print("  No clearable memory.\n")
                     continue
                 else:
                     print(f"  Unknown command: {cmd}\n")

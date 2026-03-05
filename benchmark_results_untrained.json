@@ -1,0 +1,887 @@
+[
+  {
+    "tier": "Tier 1 (Legacy)",
+    "description": "Legacy Hopfield (Phase 1)",
+    "memory_type": "Explicit patterns",
+    "capacity_label": "2,048",
+    "stores_data": "Yes (buffer rows)",
+    "num_conversations": 8,
+    "recall_at_1": 0.875,
+    "recall_at_3": 1.0,
+    "recall_at_5": 1.0,
+    "mean_mrr": 0.9166666666666666,
+    "mean_storage_rate": 0.6458333333333334,
+    "hopfield_accuracy": 1.0,
+    "pipeline_accuracy": 0.875,
+    "mean_retrieval_latency_ms": 4.499937499758744,
+    "per_conversation": [
+      {
+        "id": "eval_python_prefs",
+        "topic": "framework preference",
+        "stored_count": 3,
+        "total_turns": 5,
+        "storage_rate": 0.6,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 30.123700000331155,
+        "retrieved_texts": [
+          "Yes, I pair FastAPI with SQLAlchemy and Pydantic for data validation.",
+          "Python is a great choice for backend work!",
+          "FastAPI is excellent for async APIs. Do you use it with SQLAlchemy?"
+        ]
+      },
+      {
+        "id": "eval_pet_name",
+        "topic": "pet name",
+        "stored_count": 3,
+        "total_turns": 4,
+        "storage_rate": 0.75,
+        "recall_at_1": false,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 0.3333333333333333,
+        "hopfield_hit": true,
+        "pipeline_hit": true,
+        "retrieval_latency_ms": 0.6525999997393228,
+        "retrieved_texts": [
+          "Golden retrievers are natural swimmers!",
+          "She's 3 years old and loves swimming in the lake.",
+          "I have a golden retriever named Biscuit."
+        ]
+      },
+      {
+        "id": "eval_work_project",
+        "topic": "work project",
+        "stored_count": 2,
+        "total_turns": 5,
+        "storage_rate": 0.4,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": true,
+        "retrieval_latency_ms": 0.7124999992811354,
+        "retrieved_texts": [
+          "Transformers work well for sequential recommendation.",
+          "At work, I'm building a recommendation engine for e-commerce."
+        ]
+      },
+      {
+        "id": "eval_travel_plan",
+        "topic": "travel plans",
+        "stored_count": 4,
+        "total_turns": 4,
+        "storage_rate": 1.0,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": true,
+        "retrieval_latency_ms": 0.8631000000605127,
+        "retrieved_texts": [
+          "Fushimi Inari and Kinkaku-ji are must-sees in Kyoto.",
+          "Tokyo for a week, then Kyoto for five days to visit the temples.",
+          "April is the perfect time for hanami! Which cities?",
+          "I'm planning a trip to Japan next April for cherry blossom season."
+        ]
+      },
+      {
+        "id": "eval_health_routine",
+        "topic": "health routine",
+        "stored_count": 2,
+        "total_turns": 5,
+        "storage_rate": 0.4,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": true,
+        "retrieval_latency_ms": 0.9841999999480322,
+        "retrieved_texts": [
+          "I've been doing intermittent fasting, 16:8 schedule.",
+          "Running fasted can boost fat oxidation. How long have you been doing this?"
+        ]
+      },
+      {
+        "id": "eval_music_taste",
+        "topic": "music taste",
+        "stored_count": 2,
+        "total_turns": 3,
+        "storage_rate": 0.6666666666666666,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": true,
+        "retrieval_latency_ms": 0.49949999993259553,
+        "retrieved_texts": [
+          "Miles Davis is legendary! Kind of Blue is a masterpiece.",
+          "I've been really into jazz lately, especially Miles Davis."
+        ]
+      },
+      {
+        "id": "eval_tech_setup",
+        "topic": "computer specs",
+        "stored_count": 3,
+        "total_turns": 4,
+        "storage_rate": 0.75,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": true,
+        "retrieval_latency_ms": 1.0627999999996973,
+        "retrieved_texts": [
+          "I just built a new PC with an RTX 4090 and 64GB RAM.",
+          "That's a beast! What CPU did you go with?",
+          "The 7950X with a 4090 is a great combo for ML workloads."
+        ]
+      },
+      {
+        "id": "eval_learning_goals",
+        "topic": "learning goals",
+        "stored_count": 3,
+        "total_turns": 5,
+        "storage_rate": 0.6,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": true,
+        "retrieval_latency_ms": 1.1010999987774994,
+        "retrieved_texts": [
+          "I want to learn Rust this year for systems programming.",
+          "PyO3 makes Python-Rust interop smooth.",
+          "Rust is great for systems! Any specific projects in mind?"
+        ]
+      }
+    ]
+  },
+  {
+    "tier": "Tier 2 (Modular)",
+    "description": "Modular Hopfield (Phase 2)",
+    "memory_type": "Explicit patterns",
+    "capacity_label": "8,192",
+    "stores_data": "Yes (buffer rows)",
+    "num_conversations": 8,
+    "recall_at_1": 0.875,
+    "recall_at_3": 1.0,
+    "recall_at_5": 1.0,
+    "mean_mrr": 0.9375,
+    "mean_storage_rate": 0.6395833333333334,
+    "hopfield_accuracy": 0.375,
+    "pipeline_accuracy": 0.0,
+    "mean_retrieval_latency_ms": 2.31635000022834,
+    "per_conversation": [
+      {
+        "id": "eval_python_prefs",
+        "topic": "framework preference",
+        "stored_count": 2,
+        "total_turns": 5,
+        "storage_rate": 0.4,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 3.5410000000410946,
+        "retrieved_texts": [
+          "Yes, I pair FastAPI with SQLAlchemy and Pydantic for data validation.",
+          "Python is a great choice for backend work!"
+        ]
+      },
+      {
+        "id": "eval_pet_name",
+        "topic": "pet name",
+        "stored_count": 3,
+        "total_turns": 4,
+        "storage_rate": 0.75,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 1.6579000002820976,
+        "retrieved_texts": [
+          "Biscuit is an adorable name! How old is Biscuit?",
+          "Golden retrievers are natural swimmers!",
+          "She's 3 years old and loves swimming in the lake."
+        ]
+      },
+      {
+        "id": "eval_work_project",
+        "topic": "work project",
+        "stored_count": 3,
+        "total_turns": 5,
+        "storage_rate": 0.6,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 2.06620000062685,
+        "retrieved_texts": [
+          "Transformers work well for sequential recommendation.",
+          "At work, I'm building a recommendation engine for e-commerce.",
+          "We're using collaborative filtering with a transformer model."
+        ]
+      },
+      {
+        "id": "eval_travel_plan",
+        "topic": "travel plans",
+        "stored_count": 3,
+        "total_turns": 4,
+        "storage_rate": 0.75,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 2.9785000006086193,
+        "retrieved_texts": [
+          "Fushimi Inari and Kinkaku-ji are must-sees in Kyoto.",
+          "Tokyo for a week, then Kyoto for five days to visit the temples.",
+          "April is the perfect time for hanami! Which cities?"
+        ]
+      },
+      {
+        "id": "eval_health_routine",
+        "topic": "health routine",
+        "stored_count": 2,
+        "total_turns": 5,
+        "storage_rate": 0.4,
+        "recall_at_1": false,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 0.5,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 1.3352999994822312,
+        "retrieved_texts": [
+          "About six months now. I've lost 15 pounds so far.",
+          "16:8 is a popular IF schedule. When is your eating window?"
+        ]
+      },
+      {
+        "id": "eval_music_taste",
+        "topic": "music taste",
+        "stored_count": 2,
+        "total_turns": 3,
+        "storage_rate": 0.6666666666666666,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 3.239199999370612,
+        "retrieved_texts": [
+          "Miles Davis is legendary! Kind of Blue is a masterpiece.",
+          "I've been really into jazz lately, especially Miles Davis."
+        ]
+      },
+      {
+        "id": "eval_tech_setup",
+        "topic": "computer specs",
+        "stored_count": 3,
+        "total_turns": 4,
+        "storage_rate": 0.75,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 2.520100000765524,
+        "retrieved_texts": [
+          "I just built a new PC with an RTX 4090 and 64GB RAM.",
+          "That's a beast! What CPU did you go with?",
+          "The 7950X with a 4090 is a great combo for ML workloads."
+        ]
+      },
+      {
+        "id": "eval_learning_goals",
+        "topic": "learning goals",
+        "stored_count": 4,
+        "total_turns": 5,
+        "storage_rate": 0.8,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 1.1926000006496906,
+        "retrieved_texts": [
+          "I want to learn Rust this year for systems programming.",
+          "Exactly! I'm also interested in writing a custom memory allocator.",
+          "PyO3 makes Python-Rust interop smooth.",
+          "Rust is great for systems! Any specific projects in mind?"
+        ]
+      }
+    ]
+  },
+  {
+    "tier": "Tier 3 (FastWeight)",
+    "description": "Fast Weight Memory (Phase 3)",
+    "memory_type": "Weight matrices",
+    "capacity_label": "Theoretically \u221e",
+    "stores_data": "No (weights only)",
+    "num_conversations": 8,
+    "recall_at_1": 0.5,
+    "recall_at_3": 0.625,
+    "recall_at_5": 0.625,
+    "mean_mrr": 0.5625,
+    "mean_storage_rate": 0.6208333333333333,
+    "hopfield_accuracy": 0.5,
+    "pipeline_accuracy": 0.0,
+    "mean_retrieval_latency_ms": 2.4799749999147025,
+    "per_conversation": [
+      {
+        "id": "eval_python_prefs",
+        "topic": "framework preference",
+        "stored_count": 2,
+        "total_turns": 5,
+        "storage_rate": 0.4,
+        "recall_at_1": false,
+        "recall_at_3": false,
+        "recall_at_5": false,
+        "mrr": 0.0,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 2.5954000011552125,
+        "retrieved_texts": [
+          "I primarily use Python for backend development.",
+          "Python is a great choice for backend work!"
+        ]
+      },
+      {
+        "id": "eval_pet_name",
+        "topic": "pet name",
+        "stored_count": 2,
+        "total_turns": 4,
+        "storage_rate": 0.5,
+        "recall_at_1": false,
+        "recall_at_3": false,
+        "recall_at_5": false,
+        "mrr": 0.0,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 0.8909999996831175,
+        "retrieved_texts": [
+          "She's 3 years old and loves swimming in the lake.",
+          "Golden retrievers are natural swimmers!"
+        ]
+      },
+      {
+        "id": "eval_work_project",
+        "topic": "work project",
+        "stored_count": 4,
+        "total_turns": 5,
+        "storage_rate": 0.8,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 4.361200000857934,
+        "retrieved_texts": [
+          "We're using collaborative filtering with a transformer model.",
+          "At work, I'm building a recommendation engine for e-commerce.",
+          "Our dataset has about 50 million user interactions from the past year.",
+          "That's an interesting project! What approach are you taking?"
+        ]
+      },
+      {
+        "id": "eval_travel_plan",
+        "topic": "travel plans",
+        "stored_count": 3,
+        "total_turns": 4,
+        "storage_rate": 0.75,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 1.9381999991310295,
+        "retrieved_texts": [
+          "I'm planning a trip to Japan next April for cherry blossom season.",
+          "April is the perfect time for hanami! Which cities?",
+          "Tokyo for a week, then Kyoto for five days to visit the temples."
+        ]
+      },
+      {
+        "id": "eval_health_routine",
+        "topic": "health routine",
+        "stored_count": 5,
+        "total_turns": 5,
+        "storage_rate": 1.0,
+        "recall_at_1": false,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 0.5,
+        "hopfield_hit": true,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 1.6654999999445863,
+        "retrieved_texts": [
+          "About six months now. I've lost 15 pounds so far.",
+          "I've been doing intermittent fasting, 16:8 schedule.",
+          "16:8 is a popular IF schedule. When is your eating window?",
+          "Running fasted can boost fat oxidation. How long have you been doing this?",
+          "I eat between noon and 8pm. I also run 5K every morning at 6am."
+        ]
+      },
+      {
+        "id": "eval_music_taste",
+        "topic": "music taste",
+        "stored_count": 2,
+        "total_turns": 3,
+        "storage_rate": 0.6666666666666666,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 0.5111999998916872,
+        "retrieved_texts": [
+          "I've been really into jazz lately, especially Miles Davis.",
+          "Miles Davis is legendary! Kind of Blue is a masterpiece."
+        ]
+      },
+      {
+        "id": "eval_tech_setup",
+        "topic": "computer specs",
+        "stored_count": 1,
+        "total_turns": 4,
+        "storage_rate": 0.25,
+        "recall_at_1": false,
+        "recall_at_3": false,
+        "recall_at_5": false,
+        "mrr": 0.0,
+        "hopfield_hit": false,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 3.033299999515293,
+        "retrieved_texts": [
+          "That's a beast! What CPU did you go with?"
+        ]
+      },
+      {
+        "id": "eval_learning_goals",
+        "topic": "learning goals",
+        "stored_count": 3,
+        "total_turns": 5,
+        "storage_rate": 0.6,
+        "recall_at_1": true,
+        "recall_at_3": true,
+        "recall_at_5": true,
+        "mrr": 1.0,
+        "hopfield_hit": true,
+        "pipeline_hit": false,
+        "retrieval_latency_ms": 4.8439999991387594,
+        "retrieved_texts": [
+          "Rust is great for systems! Any specific projects in mind?",
+          "I want to learn Rust this year for systems programming.",
+          "I want to rewrite our data pipeline's hot path from Python to Rust."
+        ]
+      }
+    ]
+  },
+  {
+    "specialization_report": {
+      "module_summaries": [
+        {
+          "module_index": 0,
+          "occupancy": 0.015625014901161194,
+          "write_count": 5,
+          "w_key_norm": 0.23602887988090515,
+          "w_value_norm": 0.23731493949890137,
+          "top_entities": [
+            [
+              "go",
+              1
+            ]
+          ],
+          "top_topics": []
+        },
+        {
+          "module_index": 1,
+          "occupancy": 0.015624980442225933,
+          "write_count": 1,
+          "w_key_norm": 0.09999999403953552,
+          "w_value_norm": 0.10000000149011612,
+          "top_entities": [
+            [
+              "Rust",
+              1
+            ]
+          ],
+          "top_topics": [
+            [
+              "learning",
+              1
+            ]
+          ]
+        },
+        {
+          "module_index": 2,
+          "occupancy": 0.015624969964846969,
+          "write_count": 1,
+          "w_key_norm": 0.10000000894069672,
+          "w_value_norm": 0.10000000149011612,
+          "top_entities": [
+            [
+              "Rust",
+              1
+            ]
+          ],
+          "top_topics": [
+            [
+              "learning",
+              1
+            ]
+          ]
+        },
+        {
+          "module_index": 3,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 4,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 5,
+          "occupancy": 0.015624999068677424,
+          "write_count": 3,
+          "w_key_norm": 0.1860797107219696,
+          "w_value_norm": 0.18353056907653809,
+          "top_entities": [
+            [
+              "Python",
+              1
+            ],
+            [
+              "Rust",
+              1
+            ]
+          ],
+          "top_topics": [
+            [
+              "machine_learning",
+              1
+            ],
+            [
+              "python",
+              1
+            ]
+          ]
+        },
+        {
+          "module_index": 6,
+          "occupancy": 0.01562500838190317,
+          "write_count": 1,
+          "w_key_norm": 0.10000000149011612,
+          "w_value_norm": 0.10000000149011612,
+          "top_entities": [],
+          "top_topics": [
+            [
+              "machine_learning",
+              1
+            ]
+          ]
+        },
+        {
+          "module_index": 7,
+          "occupancy": 0.015624997904524207,
+          "write_count": 2,
+          "w_key_norm": 0.14452698826789856,
+          "w_value_norm": 0.1404026448726654,
+          "top_entities": [],
+          "top_topics": [
+            [
+              "machine_learning",
+              1
+            ]
+          ]
+        },
+        {
+          "module_index": 8,
+          "occupancy": 0.015625001396983862,
+          "write_count": 1,
+          "w_key_norm": 0.10000000894069672,
+          "w_value_norm": 0.10000000894069672,
+          "top_entities": [
+            [
+              "go",
+              1
+            ]
+          ],
+          "top_topics": []
+        },
+        {
+          "module_index": 9,
+          "occupancy": 0.015624997904524207,
+          "write_count": 1,
+          "w_key_norm": 0.10000000149011612,
+          "w_value_norm": 0.10000000149011612,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 10,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 11,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 12,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 13,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 14,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 15,
+          "occupancy": 0.01562500186264515,
+          "write_count": 5,
+          "w_key_norm": 0.24069419503211975,
+          "w_value_norm": 0.2399657964706421,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 16,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 17,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 18,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 19,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 20,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 21,
+          "occupancy": 0.015624996740370989,
+          "write_count": 1,
+          "w_key_norm": 0.09999999403953552,
+          "w_value_norm": 0.10000000149011612,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 22,
+          "occupancy": 0.01562500256113708,
+          "write_count": 1,
+          "w_key_norm": 0.10000000149011612,
+          "w_value_norm": 0.09999999403953552,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 23,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 24,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 25,
+          "occupancy": 0.015624994412064552,
+          "write_count": 1,
+          "w_key_norm": 0.10000000894069672,
+          "w_value_norm": 0.10000000149011612,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 26,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 27,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 28,
+          "occupancy": 0.015624994412064552,
+          "write_count": 1,
+          "w_key_norm": 0.10000000149011612,
+          "w_value_norm": 0.10000000149011612,
+          "top_entities": [
+            [
+              "Python",
+              1
+            ],
+            [
+              "Rust",
+              1
+            ]
+          ],
+          "top_topics": [
+            [
+              "python",
+              1
+            ]
+          ]
+        },
+        {
+          "module_index": 29,
+          "occupancy": 0.01562500838190317,
+          "write_count": 1,
+          "w_key_norm": 0.10000000894069672,
+          "w_value_norm": 0.10000000894069672,
+          "top_entities": [],
+          "top_topics": []
+        },
+        {
+          "module_index": 30,
+          "occupancy": 0.015624997904524207,
+          "write_count": 1,
+          "w_key_norm": 0.10000000894069672,
+          "w_value_norm": 0.10000000149011612,
+          "top_entities": [],
+          "top_topics": [
+            [
+              "machine_learning",
+              1
+            ]
+          ]
+        },
+        {
+          "module_index": 31,
+          "occupancy": 0.0,
+          "write_count": 0,
+          "w_key_norm": 0.0,
+          "w_value_norm": 0.0,
+          "top_entities": [],
+          "top_topics": []
+        }
+      ],
+      "weight_health": {
+        "w_key_norm_min": 0.0,
+        "w_key_norm_max": 0.24069419503211975,
+        "w_key_norm_mean": 0.059604056645184755,
+        "w_value_norm_min": 0.0,
+        "w_value_norm_max": 0.2399657964706421,
+        "w_value_norm_mean": 0.0594129366800189
+      },
+      "active_modules": 15,
+      "total_modules": 32
+    }
+  }
+]
