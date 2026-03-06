@@ -5,6 +5,8 @@ Provides full access to hidden states for memory injection hooks.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
@@ -17,6 +19,7 @@ class LocalLLM:
         model_name: str = "Qwen/Qwen2.5-7B-Instruct",
         injection_layer: int | None = None,
         device: str = "cuda",
+        lora_path: str | None = None,
     ) -> None:
         """
         Args:
@@ -40,6 +43,9 @@ class LocalLLM:
         self._hook_handle = None
         self._memory_vector: torch.Tensor | None = None
         self._injection_layer = injection_layer
+        self._lora_path = lora_path
+        self._injection_strength = 0.05  # Subtle supplement to text injection
+        self._inject_once = False  # When True, auto-clear after first forward pass
         self._projection = None  # Learned projection from brain dim to LLM dim
 
     def load(self) -> None:
@@ -75,6 +81,18 @@ class LocalLLM:
         print(f"  Memory injection at layer {self._injection_layer}")
         print(f"  VRAM: ~{torch.cuda.memory_allocated() / 1e9:.1f}GB")
 
+        # Apply LoRA adapter if available
+        if self._lora_path and Path(self._lora_path).exists():
+            from peft import PeftModel
+
+            print(f"  Loading LoRA weights from {self._lora_path}...")
+            self.model = PeftModel.from_pretrained(
+                self.model,
+                self._lora_path,
+                is_trainable=False,
+            )
+            print(f"  LoRA applied. VRAM: ~{torch.cuda.memory_allocated() / 1e9:.1f}GB")
+
         # Register the injection hook
         self._register_hook()
 
@@ -84,6 +102,11 @@ class LocalLLM:
         Different model architectures name their layers differently.
         """
         # Try common attribute paths for different model architectures
+        # PEFT wraps: model.base_model.model.model.layers[i]
+        if hasattr(self.model, "base_model"):
+            inner = self.model.base_model.model
+            if hasattr(inner, "model") and hasattr(inner.model, "layers"):
+                return inner.model.layers[layer_idx]
         if hasattr(self.model, "model"):
             inner = self.model.model
             # Qwen, Llama, Mistral all use model.model.layers[i]
@@ -121,11 +144,16 @@ class LocalLLM:
             # Scale injection relative to the LLM's hidden state norm
             # so the memory signal is always proportional to internal scale
             hidden_norm = hidden_states[:, -1, :].norm(dim=-1, keepdim=True)
-            memory_projected = memory_projected * hidden_norm * 0.1
+            memory_projected = memory_projected * hidden_norm * self._injection_strength
 
             # Add memory signal to last token's hidden state
             hidden_states = hidden_states.clone()
             hidden_states[:, -1, :] += memory_projected
+
+            # Auto-clear after first forward pass during generation
+            # so injection only applies to the prompt, not every token
+            if self._inject_once:
+                self._memory_vector = None
 
             if isinstance(output, tuple):
                 return (hidden_states,) + output[1:]
@@ -174,6 +202,9 @@ class LocalLLM:
             text += "<|assistant|>\n"
 
         inputs = self.tokenizer(text, return_tensors="pt").to(self.model.device)
+
+        # Inject memory only on the prompt's forward pass, not every generated token
+        self._inject_once = True
 
         with torch.no_grad():
             outputs = self.model.generate(

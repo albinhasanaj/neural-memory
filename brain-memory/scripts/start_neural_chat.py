@@ -36,14 +36,30 @@ def main() -> None:
     checkpoint = sys.argv[1] if len(sys.argv) > 1 else "checkpoints/fast_weight_1k/final"
     model_name = sys.argv[2] if len(sys.argv) > 2 else settings.local_llm_model
 
+    # Check for --lora flag
+    lora_path = None
+    for i, arg in enumerate(sys.argv):
+        if arg == "--lora" and i + 1 < len(sys.argv):
+            lora_path = sys.argv[i + 1]
+        elif arg.startswith("--lora="):
+            lora_path = arg.split("=", 1)[1]
+
+    # If no explicit lora path, check default location
+    if lora_path is None:
+        default_lora = "checkpoints/lora_memory"
+        if os.path.isdir(default_lora):
+            lora_path = default_lora
+            print(f"  Auto-detected LoRA weights at {default_lora}")
+
     print("=" * 60)
     print("  BRAIN MEMORY — Neural Injection Mode")
     print(f"  Local LLM: {model_name}")
     print(f"  Checkpoint: {checkpoint}")
+    print(f"  LoRA: {lora_path or 'None (base model)'}")
     print("=" * 60)
 
     # Step 1: Load local LLM
-    llm = LocalLLM(model_name=model_name)
+    llm = LocalLLM(model_name=model_name, lora_path=lora_path)
     llm.load()
 
     # Step 2: Create brain memory observer

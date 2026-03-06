@@ -695,21 +695,22 @@ class NeuralMemoryObserver(MemoryObserver):
         """
         assert self._hopfield is not None
 
-        # ── Phase 4: Neural injection path ───────────────────────────
+        # ── Phase 4+5: Neural injection as SUPPLEMENT to text injection ──
+        # The LoRA-trained model interprets injected vectors as a subtle
+        # memory hint, but text injection remains the primary information
+        # channel for factual accuracy.
         if settings.use_neural_injection and self._local_llm is not None:
             injection_vector = self.prepare_neural_injection(ctx_emb)
 
             if injection_vector is not None:
                 self._local_llm.set_memory_vector(injection_vector)
-                # -- emit inject event for neural path
                 event_bus.emit('inject', num_memories=1,
-                               memory_texts=["[neural injection — no text decode]"])
+                               memory_texts=["[neural injection — supplementary]"])
             else:
                 self._local_llm.set_memory_vector(None)
 
-            # Return messages UNMODIFIED — no [MEMORY CONTEXT] block
-            # Memory is injected during generation via the forward hook
-            return messages, activated
+            # FALL THROUGH to text injection below — don't return early.
+            # Neural injection supplements text injection, not replaces it.
 
         # Step 1: Hopfield retrieval (primary)
         hopfield_results = self._hopfield.retrieve_decoded(ctx_emb, top_k=10)

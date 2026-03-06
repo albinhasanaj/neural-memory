@@ -1,0 +1,14 @@
+Fine-tuning Qwen/Qwen2.5-3B-Instruct with LoRA (anti-overfit)
+Train: data/memory_training_data.json
+Val:   data/memory_training_data_val.json
+Max epochs: 30
+Model: 36 layers, hidden=2048, inject@18
+trainable params: 1,843,200 || all params: 3,087,781,888 || trainable%: 0.0597
+Loaded projection (brain_dim=384)
+Train: 900, Val: 100
+  Epoch 1/30: train=1.9515  val=0.0777  best=inf
+  Epoch 2/30: train=0.0695  val=0.0608  best=0.0777
+  Epoch 3/30: train=0.0570  val=0.0560  best=0.0608
+  Epoch 4/30: train=0.0515  val=0.0519  best=0.0560
+  Epoch 5/30: train=0.0482  val=0.0508  best=0.0519
+  Epoch 6/30: train=0.0464  val=0.0502  best=0.0508
